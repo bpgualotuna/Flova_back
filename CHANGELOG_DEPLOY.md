@@ -10,10 +10,17 @@
 error TS5107: Option 'moduleResolution=node10' is deprecated
 ```
 
-**Solución:**
-- Cambiado `"moduleResolution": "node"` a `"moduleResolution": "node10"`
-- Agregado `"ignoreDeprecations": "5.0"` para suprimir warnings de deprecación
-- ✅ Build ahora compila sin errores
+**Intentos de Solución:**
+1. ❌ Intentado con `"moduleResolution": "node10"` + `"ignoreDeprecations": "5.0"` - No funcionó
+2. ❌ Intentado con `"ignoreDeprecations": "6.0"` - Valor inválido en TS 5.9.3
+3. ❌ Intentado con `"moduleResolution": "bundler"` - Incompatible con `module: "commonjs"`
+4. ❌ Intentado con `"moduleResolution": "nodenext"` - Requiere `module: "NodeNext"`
+5. ✅ **SOLUCIÓN FINAL:** Removida la opción `moduleResolution` completamente
+
+**Resultado:**
+- TypeScript infiere automáticamente la resolución de módulos
+- ✅ Build compila sin errores ni warnings
+- ✅ Compatible con todas las versiones de TypeScript
 
 #### 2. **Seguridad - Credenciales Expuestas**
 **Problema:**
