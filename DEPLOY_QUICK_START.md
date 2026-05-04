@@ -1,5 +1,14 @@
 # 🚀 Deploy Rápido en Render - Flova Backend
 
+## ⚠️ ADVERTENCIA DE SEGURIDAD
+
+**ANTES DE HACER PUSH:**
+- ✅ Verifica que `.env` esté en `.gitignore`
+- ✅ Verifica que `.env.example` NO contenga credenciales reales
+- ✅ Lee `SECURITY.md` para mejores prácticas
+
+---
+
 ## ✅ Pre-requisitos Completados
 
 - ✅ Base de datos PostgreSQL en Neon configurada
