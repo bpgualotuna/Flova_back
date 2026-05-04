@@ -26,7 +26,13 @@ export const getCitas = async (req: Request, res: Response) => {
     }
 
     if (estado) {
-      where.estado = estado as string;
+      // Manejar múltiples estados separados por coma
+      const estados = (estado as string).split(',').map(e => e.trim());
+      if (estados.length > 1) {
+        where.estado = { in: estados };
+      } else {
+        where.estado = estados[0];
+      }
     }
 
     if (fecha) {
@@ -444,12 +450,19 @@ export const getHorariosDisponibles = async (req: Request, res: Response) => {
   try {
     const { medicoId, fecha } = req.query;
 
-    if (!medicoId || !fecha) {
+    // Validar que los parámetros existan y no sean undefined
+    if (!medicoId || medicoId === 'undefined' || !fecha) {
       return res.status(400).json({ error: 'medicoId y fecha son requeridos' });
     }
 
     if (!validarFormatoFecha(fecha as string)) {
       return res.status(400).json({ error: 'Formato de fecha inválido' });
+    }
+
+    // Validar que medicoId sea un número válido
+    const medicoIdNum = parseInt(medicoId as string);
+    if (isNaN(medicoIdNum)) {
+      return res.status(400).json({ error: 'medicoId debe ser un número válido' });
     }
 
     const fechaDate = new Date(fecha as string);
@@ -458,7 +471,7 @@ export const getHorariosDisponibles = async (req: Request, res: Response) => {
     // Obtener horarios de atención del médico para ese día
     const horariosAtencion = await prisma.horarioAtencion.findMany({
       where: {
-        medicoId: parseInt(medicoId as string),
+        medicoId: medicoIdNum,
         diaSemana,
         activo: true
       }

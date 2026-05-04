@@ -200,6 +200,15 @@ async function main() {
       }
     });
   }
+  // Sábado: 08:00 - 12:00 (medio día)
+  await prisma.horarioAtencion.create({
+    data: {
+      medicoId: medico1.id,
+      diaSemana: 6,
+      horaInicio: '08:00',
+      horaFin: '12:00'
+    }
+  });
 
   // Horarios para Dra. María González (Terapia Ocupacional)
   // Lunes a Viernes: 09:00 - 17:00
@@ -226,6 +235,15 @@ async function main() {
       }
     });
   }
+  // Sábado: 10:00 - 14:00 (medio día)
+  await prisma.horarioAtencion.create({
+    data: {
+      medicoId: medico3.id,
+      diaSemana: 6,
+      horaInicio: '10:00',
+      horaFin: '14:00'
+    }
+  });
 
   // Horarios para Dra. Ana Martínez (Fisioterapia)
   // Lunes a Viernes: 14:00 - 20:00
