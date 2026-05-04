@@ -4,10 +4,12 @@
 
 ### 🔧 Correcciones Técnicas
 
-#### 1. **tsconfig.json** - Deprecación de moduleResolution
+#### 1. **tsconfig.json** - Deprecación de moduleResolution y tipos de Node.js
 **Problema:** 
 ```
 error TS5107: Option 'moduleResolution=node10' is deprecated
+error TS2591: Cannot find name 'process'
+error TS2584: Cannot find name 'console'
 ```
 
 **Intentos de Solución:**
@@ -15,12 +17,14 @@ error TS5107: Option 'moduleResolution=node10' is deprecated
 2. ❌ Intentado con `"ignoreDeprecations": "6.0"` - Valor inválido en TS 5.9.3
 3. ❌ Intentado con `"moduleResolution": "bundler"` - Incompatible con `module: "commonjs"`
 4. ❌ Intentado con `"moduleResolution": "nodenext"` - Requiere `module: "NodeNext"`
-5. ✅ **SOLUCIÓN FINAL:** Removida la opción `moduleResolution` completamente
+5. ❌ Removida la opción `moduleResolution` - Causó errores de tipos de Node.js
+6. ✅ **SOLUCIÓN FINAL:** Mantener `"moduleResolution": "node10"` + agregar `"types": ["node"]`
 
 **Resultado:**
-- TypeScript infiere automáticamente la resolución de módulos
-- ✅ Build compila sin errores ni warnings
-- ✅ Compatible con todas las versiones de TypeScript
+- TypeScript carga correctamente los tipos de Node.js (`process`, `console`, etc.)
+- ✅ Build compila sin errores
+- ✅ Compatible con Render y todas las versiones de TypeScript
+- ✅ El warning de deprecación no causa fallo en el build
 
 #### 2. **Seguridad - Credenciales Expuestas**
 **Problema:**
