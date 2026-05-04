@@ -1,0 +1,52 @@
+{
+  "name": "flova-backend",
+  "version": "1.0.0",
+  "description": "Backend para Sistema de Gestión de Citas Médicas - Flova",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "npx prisma generate && tsc",
+    "start": "node dist/index.js",
+    "postinstall": "npx prisma generate",
+    "deploy": "npm run build && npx prisma migrate deploy",
+    "prisma:generate": "npx prisma generate",
+    "prisma:migrate": "npx prisma migrate dev",
+    "prisma:migrate:deploy": "npx prisma migrate deploy",
+    "prisma:studio": "npx prisma studio",
+    "prisma:seed": "npx tsx prisma/seed.ts"
+  },
+  "keywords": [
+    "medical",
+    "appointments",
+    "healthcare"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^5.0.0",
+    "bcryptjs": "^3.0.3",
+    "compression": "^1.8.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "express": "^4.19.2",
+    "helmet": "^7.1.0",
+    "joi": "^17.9.0",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.10.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/compression": "^1.7.2",
+    "@types/cors": "^2.8.13",
+    "@types/express": "^4.17.17",
+    "@types/joi": "^17.2.2",
+    "@types/jsonwebtoken": "^9.0.2",
+    "@types/morgan": "^1.9.4",
+    "@types/node": "^20.0.0",
+    "nodemon": "^3.0.1",
+    "prisma": "^5.0.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.7.0",
+    "typescript": "^5.0.0"
+  }
+}
