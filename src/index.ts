@@ -13,6 +13,7 @@ import citasRoutes from './routes/citas.routes';
 import medicosRoutes from './routes/medicos.routes';
 import terapiasRoutes from './routes/terapias.routes';
 import usersRoutes from './routes/users.routes';
+import statsRoutes from './routes/stats.routes';
 
 // Middleware de errores
 import { errorHandler } from './middlewares/errorHandler';
@@ -64,6 +65,7 @@ app.use('/api/citas', citasRoutes);
 app.use('/api/medicos', medicosRoutes);
 app.use('/api/terapias', terapiasRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/stats', statsRoutes);
 
 // ============================================
 // MANEJO DE ERRORES
