@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
 import prisma from '../prisma';
 import { hashPassword, comparePassword } from '../utils/password';
 import { generateToken } from '../utils/jwt';
@@ -182,6 +183,23 @@ export const logout = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.userId;
     const fullName = (req as any).user?.fullName;
+
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.split(' ')[1];
+
+    if (token) {
+      const decoded: any = jwt.decode(token);
+      const expiresAt = decoded?.exp 
+        ? new Date(decoded.exp * 1000) 
+        : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+      await prisma.blacklistedToken.create({
+        data: {
+          token,
+          expiresAt
+        }
+      });
+    }
 
     console.log(`User ${fullName} (ID: ${userId}) logged out - ${new Date().toISOString()}`);
 

@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../utils/jwt';
+import prisma from '../prisma';
 
-export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
+export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -13,6 +14,14 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
 
     if (!token) {
       return res.status(401).json({ error: 'Token not provided' });
+    }
+
+    const isBlacklisted = await prisma.blacklistedToken.findUnique({
+      where: { token }
+    });
+
+    if (isBlacklisted) {
+      return res.status(401).json({ error: 'Token has been revoked' });
     }
 
     const decoded = verifyToken(token);
