@@ -1,15 +1,8 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-// ============================================
-// REGEX PARA IDENTIFICACIÓN DE FECHAS EN JSON
-// ============================================
 const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})?$/;
 
-/**
- * Función recursiva para buscar cadenas de texto que parezcan fechas ISO
- * y convertirlas en objetos Date de Javascript para conservar compatibilidad con Prisma.
- */
 const reviveDates = (obj: any): any => {
   if (obj === null || obj === undefined) return obj;
 
@@ -37,11 +30,8 @@ const reviveDates = (obj: any): any => {
   return obj;
 };
 
-/**
- * Función que realiza la petición HTTP al servicio de persistencia (flova_db)
- */
 const dbQuery = async (model: string, operation: string, args: any = {}) => {
-  const dbServiceUrl = process.env.DB_SERVICE_URL || 'http://localhost:5000';
+  const dbServiceUrl = process.env.DB_SERVICE_URL || 'http://localhost:5001';
   const apiKey = process.env.INTERNAL_API_KEY || 'flova_secret_internal_key_2026';
 
   try {
@@ -57,20 +47,16 @@ const dbQuery = async (model: string, operation: string, args: any = {}) => {
     const data = await response.json() as any;
 
     if (!response.ok) {
-      throw new Error(data.error || `Error en consulta DB (${response.status})`);
+      throw new Error(data.error || `DB query error (${response.status})`);
     }
 
-    // Convertir de nuevo los strings de fechas en objetos Date
     return reviveDates(data);
   } catch (error: any) {
-    console.error(`❌ Error en Proxy DB [${model}.${operation}]:`, error.message);
+    console.error(`❌ DB Proxy Error [${model}.${operation}]:`, error.message);
     throw error;
   }
 };
 
-/**
- * Proxy para un modelo individual (ej: prisma.user)
- */
 const createModelProxy = (model: string) => {
   return new Proxy({}, {
     get(target, operation: string) {
@@ -79,13 +65,9 @@ const createModelProxy = (model: string) => {
   });
 };
 
-/**
- * Proxy principal que intercepta los accesos a los modelos de Prisma
- */
 const prisma = new Proxy({}, {
   get(target, model: string) {
     if (model.startsWith('$')) {
-      // Retornar una función vacía resuelta para métodos como $connect o $disconnect
       return () => Promise.resolve();
     }
     return createModelProxy(model);

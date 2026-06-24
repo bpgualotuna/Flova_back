@@ -8,43 +8,39 @@ export const errorHandler = (
 ) => {
   console.error('❌ Error:', err);
 
-  // Error de Prisma
   if (err.code === 'P2002') {
     return res.status(409).json({
-      error: 'Ya existe un registro con estos datos únicos',
+      error: 'A record with these unique details already exists',
       field: err.meta?.target
     });
   }
 
   if (err.code === 'P2025') {
     return res.status(404).json({
-      error: 'Registro no encontrado'
+      error: 'Record not found'
     });
   }
 
-  // Error de validación
   if (err.name === 'ValidationError') {
     return res.status(400).json({
-      error: 'Error de validación',
+      error: 'Validation error',
       details: err.message
     });
   }
 
-  // Error de JWT
   if (err.name === 'JsonWebTokenError') {
     return res.status(401).json({
-      error: 'Token inválido'
+      error: 'Invalid token'
     });
   }
 
   if (err.name === 'TokenExpiredError') {
     return res.status(401).json({
-      error: 'Token expirado'
+      error: 'Token expired'
     });
   }
 
-  // Error genérico
   res.status(err.status || 500).json({
-    error: err.message || 'Error interno del servidor'
+    error: err.message || 'Internal server error'
   });
 };

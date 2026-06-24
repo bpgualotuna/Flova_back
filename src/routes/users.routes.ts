@@ -6,13 +6,8 @@ import { hashPassword } from '../utils/password';
 
 const router = Router();
 
-// Todas las rutas requieren autenticación
 router.use(authMiddleware);
 
-/**
- * GET /api/users
- * Obtener todos los usuarios (Admin)
- */
 router.get('/', requireRoles(['admin']), async (req, res) => {
   try {
     const { role } = req.query;
@@ -26,22 +21,22 @@ router.get('/', requireRoles(['admin']), async (req, res) => {
       where,
       select: {
         id: true,
-        cedula: true,
+        nationalId: true,
         username: true,
         fullName: true,
         email: true,
-        telefono: true,
-        tipoSeguro: true,
+        phone: true,
+        insuranceType: true,
         role: true,
         createdAt: true,
         updatedAt: true,
-        medico: {
+        doctor: {
           select: {
             id: true,
-            especialidad: true,
-            numeroLicencia: true,
-            calificacion: true,
-            pacientesAtendidos: true
+            specialty: true,
+            licenseNumber: true,
+            rating: true,
+            patientsServed: true
           }
         }
       },
@@ -50,89 +45,89 @@ router.get('/', requireRoles(['admin']), async (req, res) => {
       }
     });
 
-    res.json(users);
+    const formattedUsers = users.map((user: any) => {
+      if (user.doctor) {
+        user.doctor.rating = parseFloat(user.doctor.rating.toString());
+      }
+      return user;
+    });
+
+    res.json(formattedUsers);
   } catch (error: any) {
-    console.error('Error en GET /users:', error);
-    res.status(500).json({ error: error.message || 'Error al obtener usuarios' });
+    console.error('Error in GET /users:', error);
+    res.status(500).json({ error: error.message || 'Error retrieving users' });
   }
 });
 
-/**
- * GET /api/users/:id
- * Obtener un usuario por ID (Admin o el mismo usuario)
- */
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const currentUser = (req as any).user;
 
-    // Verificar permisos
     if (currentUser.role !== 'admin' && currentUser.userId !== parseInt(id)) {
-      return res.status(403).json({ error: 'No tienes permiso para ver este usuario' });
+      return res.status(403).json({ error: 'You do not have permission to view this user' });
     }
 
     const user = await prisma.user.findUnique({
       where: { id: parseInt(id) },
       select: {
         id: true,
-        cedula: true,
+        nationalId: true,
         username: true,
         fullName: true,
         email: true,
-        telefono: true,
-        tipoSeguro: true,
+        phone: true,
+        insuranceType: true,
         role: true,
         createdAt: true,
         updatedAt: true,
-        medico: {
+        doctor: {
           select: {
             id: true,
-            especialidad: true,
-            numeroLicencia: true,
-            calificacion: true,
-            pacientesAtendidos: true
+            specialty: true,
+            licenseNumber: true,
+            rating: true,
+            patientsServed: true
           }
         }
       }
     });
 
     if (!user) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (user.doctor) {
+      user.doctor.rating = parseFloat(user.doctor.rating.toString()) as any;
     }
 
     res.json(user);
   } catch (error: any) {
-    console.error('Error en GET /users/:id:', error);
-    res.status(500).json({ error: error.message || 'Error al obtener usuario' });
+    console.error('Error in GET /users/:id:', error);
+    res.status(500).json({ error: error.message || 'Error retrieving user' });
   }
 });
 
-/**
- * PUT /api/users/:id
- * Actualizar usuario (Admin o el mismo usuario)
- */
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const currentUser = (req as any).user;
-    const { fullName, email, telefono, tipoSeguro, role, password } = req.body;
+    const { fullName, email, phone, insuranceType, role, password } = req.body;
 
-    // Verificar permisos
     if (currentUser.role !== 'admin' && currentUser.userId !== parseInt(id)) {
-      return res.status(403).json({ error: 'No tienes permiso para modificar este usuario' });
+      return res.status(403).json({ error: 'You do not have permission to modify this user' });
     }
 
-    // Solo admin puede cambiar roles
     if (role && currentUser.role !== 'admin') {
-      return res.status(403).json({ error: 'Solo los administradores pueden cambiar roles' });
+      return res.status(403).json({ error: 'Only administrators can change roles' });
     }
 
     const updateData: any = {};
 
     if (fullName) updateData.fullName = fullName;
     if (email) updateData.email = email;
-    if (telefono) updateData.telefono = telefono;
-    if (tipoSeguro) updateData.tipoSeguro = tipoSeguro;
+    if (phone) updateData.phone = phone;
+    if (insuranceType) updateData.insuranceType = insuranceType;
     if (role && currentUser.role === 'admin') updateData.role = role;
     if (password) updateData.password = await hashPassword(password);
 
@@ -141,31 +136,27 @@ router.put('/:id', async (req, res) => {
       data: updateData,
       select: {
         id: true,
-        cedula: true,
+        nationalId: true,
         username: true,
         fullName: true,
         email: true,
-        telefono: true,
-        tipoSeguro: true,
+        phone: true,
+        insuranceType: true,
         role: true,
         updatedAt: true
       }
     });
 
     res.json({
-      message: 'Usuario actualizado exitosamente',
+      message: 'User updated successfully',
       user
     });
   } catch (error: any) {
-    console.error('Error en PUT /users/:id:', error);
-    res.status(500).json({ error: error.message || 'Error al actualizar usuario' });
+    console.error('Error in PUT /users/:id:', error);
+    res.status(500).json({ error: error.message || 'Error updating user' });
   }
 });
 
-/**
- * DELETE /api/users/:id
- * Eliminar usuario (Admin)
- */
 router.delete('/:id', requireRoles(['admin']), async (req, res) => {
   try {
     const { id } = req.params;
@@ -174,10 +165,10 @@ router.delete('/:id', requireRoles(['admin']), async (req, res) => {
       where: { id: parseInt(id) }
     });
 
-    res.json({ message: 'Usuario eliminado exitosamente' });
+    res.json({ message: 'User deleted successfully' });
   } catch (error: any) {
-    console.error('Error en DELETE /users/:id:', error);
-    res.status(500).json({ error: error.message || 'Error al eliminar usuario' });
+    console.error('Error in DELETE /users/:id:', error);
+    res.status(500).json({ error: error.message || 'Error deleting user' });
   }
 });
 

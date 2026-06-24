@@ -5,17 +5,16 @@ export const requireRoles = (allowedRoles: string[]) => {
     const user = (req as any).user;
 
     if (!user) {
-      return res.status(401).json({ error: 'No autenticado' });
+      return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    // Admin siempre tiene acceso
     if (user.role === 'admin') {
       return next();
     }
 
     if (!allowedRoles.includes(user.role)) {
       return res.status(403).json({ 
-        error: 'No tienes permisos para acceder a este recurso',
+        error: 'You do not have permission to access this resource',
         requiredRoles: allowedRoles,
         yourRole: user.role
       });

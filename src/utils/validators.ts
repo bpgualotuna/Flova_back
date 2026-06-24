@@ -1,76 +1,56 @@
-/**
- * Validaciones de reglas de negocio
- */
-
-/**
- * Valida que la cita tenga más de 12 horas de anticipación
- * REGLA AJUSTADA: Anticipación mínima de 12 horas (no 24)
- */
-export const validarAnticipacionMinima = (fecha: string, hora: string): void => {
-  const ahora = new Date();
-  const fechaCita = new Date(`${fecha}T${hora}:00`);
-  const diferenciaHoras = (fechaCita.getTime() - ahora.getTime()) / (1000 * 60 * 60);
+export const validateMinAnticipation = (dateStr: string, timeStr: string): void => {
+  const now = new Date();
+  const appointmentDate = new Date(`${dateStr}T${timeStr}:00`);
+  const diffHours = (appointmentDate.getTime() - now.getTime()) / (1000 * 60 * 60);
   
-  if (diferenciaHoras <= 12) {
-    throw new Error('Las citas deben reservarse con más de 12 horas de anticipación');
+  if (diffHours <= 12) {
+    throw new Error('Appointments must be booked at least 12 hours in advance');
   }
 };
 
-/**
- * Valida que la cancelación tenga más de 24 horas de anticipación
- */
-export const validarAnticipacionCancelacion = (fecha: string, hora: string): void => {
-  const ahora = new Date();
-  const fechaCita = new Date(`${fecha}T${hora}:00`);
-  const diferenciaHoras = (fechaCita.getTime() - ahora.getTime()) / (1000 * 60 * 60);
+export const validateCancellationLeadTime = (dateStr: string, timeStr: string): void => {
+  const now = new Date();
+  const appointmentDate = new Date(`${dateStr}T${timeStr}:00`);
+  const diffHours = (appointmentDate.getTime() - now.getTime()) / (1000 * 60 * 60);
   
-  if (diferenciaHoras <= 24) {
-    throw new Error('Las citas solo pueden cancelarse con más de 24 horas de anticipación');
+  if (diffHours <= 24) {
+    throw new Error('Appointments can only be cancelled at least 24 hours in advance');
   }
 };
 
-/**
- * Valida formato de hora HH:mm
- */
-export const validarFormatoHora = (hora: string): boolean => {
+export const validateTimeFormat = (timeStr: string): boolean => {
   const regex = /^([01]\d|2[0-3]):([0-5]\d)$/;
-  return regex.test(hora);
+  return regex.test(timeStr);
 };
 
-/**
- * Valida formato de fecha YYYY-MM-DD
- */
-export const validarFormatoFecha = (fecha: string): boolean => {
+export const validateDateFormat = (dateStr: string): boolean => {
   const regex = /^\d{4}-\d{2}-\d{2}$/;
-  if (!regex.test(fecha)) return false;
+  if (!regex.test(dateStr)) return false;
   
-  const date = new Date(fecha);
-  return date instanceof Date && !isNaN(date.getTime());
+  const dateObj = new Date(dateStr);
+  return dateObj instanceof Date && !isNaN(dateObj.getTime());
 };
 
-/**
- * Valida que la cédula ecuatoriana sea válida
- */
-export const validarCedulaEcuatoriana = (cedula: string): boolean => {
-  if (cedula.length !== 10) return false;
+export const validateEcuadorianId = (nationalId: string): boolean => {
+  if (nationalId.length !== 10) return false;
   
-  const provincia = parseInt(cedula.substring(0, 2));
-  if (provincia < 1 || provincia > 24) return false;
+  const province = parseInt(nationalId.substring(0, 2));
+  if (province < 1 || province > 24) return false;
   
-  const tercerDigito = parseInt(cedula.charAt(2));
-  if (tercerDigito > 6) return false;
+  const thirdDigit = parseInt(nationalId.charAt(2));
+  if (thirdDigit > 6) return false;
   
-  const coeficientes = [2, 1, 2, 1, 2, 1, 2, 1, 2];
-  let suma = 0;
+  const coefficients = [2, 1, 2, 1, 2, 1, 2, 1, 2];
+  let sum = 0;
   
   for (let i = 0; i < 9; i++) {
-    let valor = parseInt(cedula.charAt(i)) * coeficientes[i];
-    if (valor >= 10) valor -= 9;
-    suma += valor;
+    let val = parseInt(nationalId.charAt(i)) * coefficients[i];
+    if (val >= 10) val -= 9;
+    sum += val;
   }
   
-  const digitoVerificador = parseInt(cedula.charAt(9));
-  const resultado = suma % 10 === 0 ? 0 : 10 - (suma % 10);
+  const verificationDigit = parseInt(nationalId.charAt(9));
+  const result = sum % 10 === 0 ? 0 : 10 - (sum % 10);
   
-  return resultado === digitoVerificador;
+  return result === verificationDigit;
 };
