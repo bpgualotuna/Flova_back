@@ -112,7 +112,12 @@ router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const currentUser = (req as any).user;
-    const { fullName, email, phone, insuranceType, role, password } = req.body;
+    const fullName = req.body.fullName;
+    const email = req.body.email;
+    const phone = req.body.phone || req.body.telefono;
+    const insuranceType = req.body.insuranceType || req.body.tipoSeguro;
+    const role = req.body.role;
+    const password = req.body.password;
 
     if (currentUser.role !== 'admin' && currentUser.userId !== parseInt(id)) {
       return res.status(403).json({ error: 'You do not have permission to modify this user' });

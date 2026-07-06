@@ -3,7 +3,8 @@ import prisma from '../prisma';
 
 export const getTherapies = async (req: Request, res: Response) => {
   try {
-    const { specialty, active } = req.query;
+    const specialty = req.query.specialty || req.query.especialidad;
+    const active = req.query.active !== undefined ? req.query.active : req.query.activa;
 
     const where: any = {};
 
@@ -12,7 +13,7 @@ export const getTherapies = async (req: Request, res: Response) => {
     }
 
     if (active !== undefined) {
-      where.active = active === 'true';
+      where.active = active === 'true' || (active as any) === true;
     } else {
       where.active = true;
     }
@@ -52,7 +53,12 @@ export const getTherapyById = async (req: Request, res: Response) => {
 
 export const createTherapy = async (req: Request, res: Response) => {
   try {
-    const { name, description, specialty, duration, price, image } = req.body;
+    const name = req.body.name || req.body.nombre;
+    const description = req.body.description || req.body.descripcion;
+    const specialty = req.body.specialty || req.body.especialidad;
+    const duration = req.body.duration || req.body.duracion;
+    const price = req.body.price || req.body.precio;
+    const image = req.body.image || req.body.imagen;
 
     if (!name || !description || !specialty || !duration || !price) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -91,7 +97,13 @@ export const createTherapy = async (req: Request, res: Response) => {
 export const updateTherapy = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, description, specialty, duration, price, image, active } = req.body;
+    const name = req.body.name || req.body.nombre;
+    const description = req.body.description || req.body.descripcion;
+    const specialty = req.body.specialty || req.body.especialidad;
+    const duration = req.body.duration || req.body.duracion;
+    const price = req.body.price || req.body.precio;
+    const image = req.body.image || req.body.imagen;
+    const active = req.body.active !== undefined ? req.body.active : req.body.activa;
 
     const therapy = await prisma.therapy.update({
       where: { id: parseInt(id) },

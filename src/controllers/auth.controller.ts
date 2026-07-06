@@ -7,7 +7,12 @@ import { validateEcuadorianId } from '../utils/validators';
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { nationalId, fullName, email, phone, insuranceType, password } = req.body;
+    const nationalId = req.body.nationalId || req.body.cedula;
+    const fullName = req.body.fullName;
+    const email = req.body.email;
+    const phone = req.body.phone || req.body.telefono;
+    const insuranceType = req.body.insuranceType || req.body.tipoSeguro;
+    const password = req.body.password;
 
     if (!nationalId || !fullName || !insuranceType || !password) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -76,7 +81,8 @@ export const register = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
   try {
-    const { nationalId, password } = req.body;
+    const nationalId = req.body.nationalId || req.body.cedula;
+    const password = req.body.password;
 
     if (!nationalId || !password) {
       return res.status(400).json({ error: 'National ID and password are required' });

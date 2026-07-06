@@ -5,7 +5,8 @@ import { validateMinAnticipation, validateCancellationLeadTime, validateTimeForm
 export const getAppointments = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
-    const { status, date } = req.query;
+    const status = req.query.status || req.query.estado;
+    const date = req.query.date || req.query.fecha;
 
     const where: any = {};
 
@@ -198,7 +199,13 @@ export const getAppointmentById = async (req: Request, res: Response) => {
 export const createAppointment = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
-    const { doctorId, therapyId, date, time, symptoms, hasExams, exams } = req.body;
+    const doctorId = req.body.doctorId || req.body.medicoId;
+    const therapyId = req.body.therapyId || req.body.terapiaId;
+    const date = req.body.date || req.body.fecha;
+    const time = req.body.time || req.body.hora;
+    const symptoms = req.body.symptoms || req.body.sintomas;
+    const hasExams = req.body.hasExams !== undefined ? req.body.hasExams : req.body.tieneExamenes;
+    const exams = req.body.exams || req.body.examenes;
 
     if (!doctorId || !therapyId || !date || !time || !symptoms) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -318,7 +325,8 @@ export const updateAppointment = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const user = (req as any).user;
-    const { status, doctorNotes } = req.body;
+    const status = req.body.status || req.body.estado;
+    const doctorNotes = req.body.doctorNotes !== undefined ? req.body.doctorNotes : req.body.notasMedico;
 
     const appointment = await prisma.appointment.findUnique({
       where: { id: parseInt(id) }
@@ -359,7 +367,7 @@ export const cancelAppointment = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const user = (req as any).user;
-    const { reason } = req.body;
+    const reason = req.body.reason || req.body.motivo;
 
     if (!reason) {
       return res.status(400).json({ error: 'You must provide a cancellation reason' });
@@ -410,7 +418,8 @@ export const cancelAppointment = async (req: Request, res: Response) => {
 
 export const getAvailableSchedules = async (req: Request, res: Response) => {
   try {
-    const { doctorId, date } = req.query;
+    const doctorId = req.query.doctorId || req.query.medicoId;
+    const date = req.query.date || req.query.fecha;
 
     if (!doctorId || doctorId === 'undefined' || !date) {
       return res.status(400).json({ error: 'doctorId and date are required' });
