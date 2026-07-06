@@ -25,7 +25,27 @@ export const getTherapies = async (req: Request, res: Response) => {
       }
     });
 
-    res.json(therapies);
+    const formatTherapy = (t: any) => ({
+      id: t.id,
+      name: t.name,
+      nombre: t.name,
+      description: t.description,
+      descripcion: t.description,
+      specialty: t.specialty,
+      especialidad: t.specialty,
+      duration: t.duration,
+      duracion: t.duration,
+      price: parseFloat(t.price.toString()),
+      precio: parseFloat(t.price.toString()),
+      image: t.image,
+      imagen: t.image,
+      active: t.active,
+      activa: t.active,
+      createdAt: t.createdAt,
+      updatedAt: t.updatedAt
+    });
+
+    res.json(therapies.map(formatTherapy));
   } catch (error: any) {
     console.error('Error in getTherapies:', error);
     res.status(500).json({ error: error.message || 'Error retrieving therapies' });
@@ -44,7 +64,27 @@ export const getTherapyById = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Therapy not found' });
     }
 
-    res.json(therapy);
+    const formatTherapy = (t: any) => ({
+      id: t.id,
+      name: t.name,
+      nombre: t.name,
+      description: t.description,
+      descripcion: t.description,
+      specialty: t.specialty,
+      especialidad: t.specialty,
+      duration: t.duration,
+      duracion: t.duration,
+      price: parseFloat(t.price.toString()),
+      precio: parseFloat(t.price.toString()),
+      image: t.image,
+      imagen: t.image,
+      active: t.active,
+      activa: t.active,
+      createdAt: t.createdAt,
+      updatedAt: t.updatedAt
+    });
+
+    res.json(formatTherapy(therapy));
   } catch (error: any) {
     console.error('Error in getTherapyById:', error);
     res.status(500).json({ error: error.message || 'Error retrieving therapy' });
@@ -84,9 +124,29 @@ export const createTherapy = async (req: Request, res: Response) => {
       }
     });
 
+    const formatTherapy = (t: any) => ({
+      id: t.id,
+      name: t.name,
+      nombre: t.name,
+      description: t.description,
+      descripcion: t.description,
+      specialty: t.specialty,
+      especialidad: t.specialty,
+      duration: t.duration,
+      duracion: t.duration,
+      price: parseFloat(t.price.toString()),
+      precio: parseFloat(t.price.toString()),
+      image: t.image,
+      imagen: t.image,
+      active: t.active,
+      activa: t.active,
+      createdAt: t.createdAt,
+      updatedAt: t.updatedAt
+    });
+
     res.status(201).json({
       message: 'Therapy created successfully',
-      therapy
+      therapy: formatTherapy(therapy)
     });
   } catch (error: any) {
     console.error('Error in createTherapy:', error);
@@ -118,9 +178,29 @@ export const updateTherapy = async (req: Request, res: Response) => {
       }
     });
 
+    const formatTherapy = (t: any) => ({
+      id: t.id,
+      name: t.name,
+      nombre: t.name,
+      description: t.description,
+      descripcion: t.description,
+      specialty: t.specialty,
+      especialidad: t.specialty,
+      duration: t.duration,
+      duracion: t.duration,
+      price: parseFloat(t.price.toString()),
+      precio: parseFloat(t.price.toString()),
+      image: t.image,
+      imagen: t.image,
+      active: t.active,
+      activa: t.active,
+      createdAt: t.createdAt,
+      updatedAt: t.updatedAt
+    });
+
     res.json({
       message: 'Therapy updated successfully',
-      therapy
+      therapy: formatTherapy(therapy)
     });
   } catch (error: any) {
     console.error('Error in updateTherapy:', error);

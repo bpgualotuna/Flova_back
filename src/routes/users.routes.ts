@@ -6,6 +6,26 @@ import { hashPassword } from '../utils/password';
 
 const router = Router();
 
+const formatUser = (u: any) => {
+  if (!u) return null;
+  const formatted: any = {
+    ...u,
+    cedula: u.nationalId,
+    telefono: u.phone,
+    tipoSeguro: u.insuranceType
+  };
+  if (u.doctor) {
+    formatted.medico = {
+      id: u.doctor.id,
+      especialidad: u.doctor.specialty,
+      numeroLicencia: u.doctor.licenseNumber,
+      calificacion: u.doctor.rating ? parseFloat(u.doctor.rating.toString()) : 0,
+      pacientesAtendidos: u.doctor.patientsServed
+    };
+  }
+  return formatted;
+};
+
 router.use(authMiddleware);
 
 router.get('/', requireRoles(['admin']), async (req, res) => {
@@ -45,14 +65,7 @@ router.get('/', requireRoles(['admin']), async (req, res) => {
       }
     });
 
-    const formattedUsers = users.map((user: any) => {
-      if (user.doctor) {
-        user.doctor.rating = parseFloat(user.doctor.rating.toString());
-      }
-      return user;
-    });
-
-    res.json(formattedUsers);
+    res.json(users.map(formatUser));
   } catch (error: any) {
     console.error('Error in GET /users:', error);
     res.status(500).json({ error: error.message || 'Error retrieving users' });
@@ -97,11 +110,7 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    if (user.doctor) {
-      user.doctor.rating = parseFloat(user.doctor.rating.toString()) as any;
-    }
-
-    res.json(user);
+    res.json(formatUser(user));
   } catch (error: any) {
     console.error('Error in GET /users/:id:', error);
     res.status(500).json({ error: error.message || 'Error retrieving user' });
@@ -154,7 +163,7 @@ router.put('/:id', async (req, res) => {
 
     res.json({
       message: 'User updated successfully',
-      user
+      user: formatUser(user)
     });
   } catch (error: any) {
     console.error('Error in PUT /users/:id:', error);

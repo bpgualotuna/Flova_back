@@ -2,6 +2,85 @@ import { Request, Response } from 'express';
 import prisma from '../prisma';
 import { validateMinAnticipation, validateCancellationLeadTime, validateTimeFormat, validateDateFormat } from '../utils/validators';
 
+const formatAppointment = (app: any) => {
+  if (!app) return null;
+  const formatted: any = {
+    id: app.id,
+    patientId: app.patientId,
+    pacienteId: app.patientId,
+    doctorId: app.doctorId,
+    medicoId: app.doctorId,
+    therapyId: app.therapyId,
+    terapiaId: app.therapyId,
+    date: app.date instanceof Date ? app.date.toISOString().split('T')[0] : app.date,
+    fecha: app.date instanceof Date ? app.date.toISOString().split('T')[0] : app.date,
+    time: app.time,
+    hora: app.time,
+    status: app.status,
+    estado: app.status,
+    symptoms: app.symptoms,
+    sintomas: app.symptoms,
+    hasExams: app.hasExams,
+    tieneExamenes: app.hasExams,
+    exams: app.exams,
+    examenes: app.exams,
+    cancellationReason: app.cancellationReason,
+    motivoCancelacion: app.cancellationReason,
+    doctorNotes: app.doctorNotes,
+    notasMedico: app.doctorNotes,
+    createdAt: app.createdAt,
+    updatedAt: app.updatedAt
+  };
+
+  if (app.patient) {
+    formatted.patient = {
+      id: app.patient.id,
+      fullName: app.patient.fullName,
+      nationalId: app.patient.nationalId,
+      cedula: app.patient.nationalId,
+      email: app.patient.email,
+      phone: app.patient.phone,
+      telefono: app.patient.phone,
+      insuranceType: app.patient.insuranceType,
+      tipoSeguro: app.patient.insuranceType
+    };
+    formatted.paciente = formatted.patient;
+  }
+
+  if (app.doctor) {
+    formatted.doctor = {
+      id: app.doctor.id,
+      fullName: app.doctor.user?.fullName || app.doctor.fullName || '',
+      specialty: app.doctor.specialty,
+      especialidad: app.doctor.specialty,
+      licenseNumber: app.doctor.licenseNumber,
+      numeroLicencia: app.doctor.licenseNumber,
+      rating: app.doctor.rating ? parseFloat(app.doctor.rating.toString()) : 0,
+      calificacion: app.doctor.rating ? parseFloat(app.doctor.rating.toString()) : 0
+    };
+    formatted.medico = formatted.doctor;
+  }
+
+  if (app.therapy) {
+    formatted.therapy = {
+      id: app.therapy.id,
+      name: app.therapy.name,
+      nombre: app.therapy.name,
+      description: app.therapy.description,
+      descripcion: app.therapy.description,
+      specialty: app.therapy.specialty,
+      especialidad: app.therapy.specialty,
+      duration: app.therapy.duration,
+      duracion: app.therapy.duration,
+      price: app.therapy.price ? parseFloat(app.therapy.price.toString()) : 0,
+      precio: app.therapy.price ? parseFloat(app.therapy.price.toString()) : 0
+    };
+    formatted.terapia = formatted.therapy;
+  }
+
+  return formatted;
+};
+
 export const getAppointments = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
@@ -66,40 +145,7 @@ export const getAppointments = async (req: Request, res: Response) => {
       ]
     });
 
-    const formattedAppointments = appointments.map(appointment => ({
-      id: appointment.id,
-      patientId: appointment.patientId,
-      doctorId: appointment.doctorId,
-      therapyId: appointment.therapyId,
-      date: appointment.date.toISOString().split('T')[0],
-      time: appointment.time,
-      status: appointment.status,
-      symptoms: appointment.symptoms,
-      hasExams: appointment.hasExams,
-      exams: appointment.exams,
-      cancellationReason: appointment.cancellationReason,
-      doctorNotes: appointment.doctorNotes,
-      createdAt: appointment.createdAt,
-      updatedAt: appointment.updatedAt,
-      patient: appointment.patient,
-      doctor: {
-        id: appointment.doctor.id,
-        fullName: appointment.doctor.user.fullName,
-        specialty: appointment.doctor.specialty,
-        licenseNumber: appointment.doctor.licenseNumber,
-        rating: parseFloat(appointment.doctor.rating.toString())
-      },
-      therapy: {
-        id: appointment.therapy.id,
-        name: appointment.therapy.name,
-        description: appointment.therapy.description,
-        specialty: appointment.therapy.specialty,
-        duration: appointment.therapy.duration,
-        price: parseFloat(appointment.therapy.price.toString())
-      }
-    }));
-
-    res.json(formattedAppointments);
+    res.json(appointments.map(formatAppointment));
   } catch (error: any) {
     console.error('Error in getAppointments:', error);
     res.status(500).json({ error: error.message || 'Error retrieving appointments' });
@@ -156,40 +202,7 @@ export const getAppointmentById = async (req: Request, res: Response) => {
       }
     }
 
-    const formattedAppointment = {
-      id: appointment.id,
-      patientId: appointment.patientId,
-      doctorId: appointment.doctorId,
-      therapyId: appointment.therapyId,
-      date: appointment.date.toISOString().split('T')[0],
-      time: appointment.time,
-      status: appointment.status,
-      symptoms: appointment.symptoms,
-      hasExams: appointment.hasExams,
-      exams: appointment.exams,
-      cancellationReason: appointment.cancellationReason,
-      doctorNotes: appointment.doctorNotes,
-      createdAt: appointment.createdAt,
-      updatedAt: appointment.updatedAt,
-      patient: appointment.patient,
-      doctor: {
-        id: appointment.doctor.id,
-        fullName: appointment.doctor.user.fullName,
-        specialty: appointment.doctor.specialty,
-        licenseNumber: appointment.doctor.licenseNumber,
-        rating: parseFloat(appointment.doctor.rating.toString())
-      },
-      therapy: {
-        id: appointment.therapy.id,
-        name: appointment.therapy.name,
-        description: appointment.therapy.description,
-        specialty: appointment.therapy.specialty,
-        duration: appointment.therapy.duration,
-        price: parseFloat(appointment.therapy.price.toString())
-      }
-    };
-
-    res.json(formattedAppointment);
+    res.json(formatAppointment(appointment));
   } catch (error: any) {
     console.error('Error in getAppointmentById:', error);
     res.status(500).json({ error: error.message || 'Error retrieving appointment' });
@@ -298,22 +311,7 @@ export const createAppointment = async (req: Request, res: Response) => {
 
     res.status(201).json({
       message: 'Appointment created successfully',
-      appointment: {
-        id: appointment.id,
-        date: appointment.date.toISOString().split('T')[0],
-        time: appointment.time,
-        status: appointment.status,
-        patient: appointment.patient,
-        doctor: {
-          fullName: appointment.doctor.user.fullName,
-          specialty: appointment.doctor.specialty
-        },
-        therapy: {
-          name: appointment.therapy.name,
-          duration: appointment.therapy.duration,
-          price: parseFloat(appointment.therapy.price.toString())
-        }
-      }
+      appointment: formatAppointment(appointment)
     });
   } catch (error: any) {
     console.error('Error in createAppointment:', error);
@@ -355,7 +353,7 @@ export const updateAppointment = async (req: Request, res: Response) => {
 
     res.json({
       message: 'Appointment updated successfully',
-      appointment: updatedAppointment
+      appointment: formatAppointment(updatedAppointment)
     });
   } catch (error: any) {
     console.error('Error in updateAppointment:', error);
@@ -408,7 +406,7 @@ export const cancelAppointment = async (req: Request, res: Response) => {
 
     res.json({
       message: 'Appointment cancelled successfully',
-      appointment: cancelledAppointment
+      appointment: formatAppointment(cancelledAppointment)
     });
   } catch (error: any) {
     console.error('Error in cancelAppointment:', error);
@@ -489,9 +487,13 @@ export const getAvailableSchedules = async (req: Request, res: Response) => {
 
         availableSchedules.push({
           date: date as string,
+          fecha: date as string,
           time: timeStr,
+          hora: timeStr,
           available,
-          doctorId: doctorIdNum
+          disponible: available,
+          doctorId: doctorIdNum,
+          medicoId: doctorIdNum
         });
 
         currentMin += 30;

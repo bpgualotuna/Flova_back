@@ -3,7 +3,7 @@ import prisma from '../prisma';
 
 export const getDoctors = async (req: Request, res: Response) => {
   try {
-    const { specialty } = req.query;
+    const specialty = req.query.specialty || req.query.especialidad;
 
     const where: any = {
       active: true
@@ -44,16 +44,27 @@ export const getDoctors = async (req: Request, res: Response) => {
       userId: doctor.userId,
       fullName: doctor.user.fullName,
       nationalId: doctor.user.nationalId,
+      cedula: doctor.user.nationalId,
       email: doctor.user.email,
       phone: doctor.user.phone,
+      telefono: doctor.user.phone,
       specialty: doctor.specialty,
+      especialidad: doctor.specialty,
       licenseNumber: doctor.licenseNumber,
+      numeroLicencia: doctor.licenseNumber,
       rating: parseFloat(doctor.rating.toString()),
+      calificacion: parseFloat(doctor.rating.toString()),
       patientsServed: doctor.patientsServed,
+      pacientesAtendidos: doctor.patientsServed,
       workSchedule: doctor.schedules.map(s => ({
         dayOfWeek: s.dayOfWeek,
         startTime: s.startTime,
         endTime: s.endTime
+      })),
+      horarioAtencion: doctor.schedules.map(s => ({
+        diaSemana: s.dayOfWeek,
+        horaInicio: s.startTime,
+        horaFin: s.endTime
       }))
     }));
 
@@ -100,16 +111,27 @@ export const getDoctorById = async (req: Request, res: Response) => {
       userId: doctor.userId,
       fullName: doctor.user.fullName,
       nationalId: doctor.user.nationalId,
+      cedula: doctor.user.nationalId,
       email: doctor.user.email,
       phone: doctor.user.phone,
+      telefono: doctor.user.phone,
       specialty: doctor.specialty,
+      especialidad: doctor.specialty,
       licenseNumber: doctor.licenseNumber,
+      numeroLicencia: doctor.licenseNumber,
       rating: parseFloat(doctor.rating.toString()),
+      calificacion: parseFloat(doctor.rating.toString()),
       patientsServed: doctor.patientsServed,
+      pacientesAtendidos: doctor.patientsServed,
       workSchedule: doctor.schedules.map(s => ({
         dayOfWeek: s.dayOfWeek,
         startTime: s.startTime,
         endTime: s.endTime
+      })),
+      horarioAtencion: doctor.schedules.map(s => ({
+        diaSemana: s.dayOfWeek,
+        horaInicio: s.startTime,
+        horaFin: s.endTime
       }))
     };
 
@@ -158,16 +180,27 @@ export const getDoctorsBySpecialty = async (req: Request, res: Response) => {
       userId: doctor.userId,
       fullName: doctor.user.fullName,
       nationalId: doctor.user.nationalId,
+      cedula: doctor.user.nationalId,
       email: doctor.user.email,
       phone: doctor.user.phone,
+      telefono: doctor.user.phone,
       specialty: doctor.specialty,
+      especialidad: doctor.specialty,
       licenseNumber: doctor.licenseNumber,
+      numeroLicencia: doctor.licenseNumber,
       rating: parseFloat(doctor.rating.toString()),
+      calificacion: parseFloat(doctor.rating.toString()),
       patientsServed: doctor.patientsServed,
+      pacientesAtendidos: doctor.patientsServed,
       workSchedule: doctor.schedules.map(s => ({
         dayOfWeek: s.dayOfWeek,
         startTime: s.startTime,
         endTime: s.endTime
+      })),
+      horarioAtencion: doctor.schedules.map(s => ({
+        diaSemana: s.dayOfWeek,
+        horaInicio: s.startTime,
+        horaFin: s.endTime
       }))
     }));
 

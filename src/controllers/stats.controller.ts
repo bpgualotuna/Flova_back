@@ -102,6 +102,13 @@ export const getAdminStats = async (req: Request, res: Response) => {
         admins: totalAdmins,
         newLast7Days: newUsers
       },
+      usuarios: {
+        total: totalUsers,
+        pacientes: totalPatients,
+        medicos: totalDoctors,
+        admins: totalAdmins,
+        nuevosUltimos7Dias: newUsers
+      },
       appointments: {
         total: totalAppointments,
         pending: pendingAppointments,
@@ -111,22 +118,62 @@ export const getAdminStats = async (req: Request, res: Response) => {
         recent: recentAppointments.map(appointment => ({
           id: appointment.id,
           date: appointment.date.toISOString().split('T')[0],
+          fecha: appointment.date.toISOString().split('T')[0],
           time: appointment.time,
+          hora: appointment.time,
           status: appointment.status,
+          estado: appointment.status,
           patient: appointment.patient.fullName,
+          paciente: appointment.patient.fullName,
           doctor: appointment.doctor.user.fullName,
+          medico: appointment.doctor.user.fullName,
           therapy: appointment.therapy.name,
-          price: parseFloat(appointment.therapy.price.toString())
+          terapia: appointment.therapy.name,
+          price: parseFloat(appointment.therapy.price.toString()),
+          precio: parseFloat(appointment.therapy.price.toString())
+        }))
+      },
+      citas: {
+        total: totalAppointments,
+        pendientes: pendingAppointments,
+        confirmadas: confirmedAppointments,
+        completadas: completedAppointments,
+        canceladas: cancelledAppointments,
+        recientes: recentAppointments.map(appointment => ({
+          id: appointment.id,
+          date: appointment.date.toISOString().split('T')[0],
+          fecha: appointment.date.toISOString().split('T')[0],
+          time: appointment.time,
+          hora: appointment.time,
+          status: appointment.status,
+          estado: appointment.status,
+          patient: appointment.patient.fullName,
+          paciente: appointment.patient.fullName,
+          doctor: appointment.doctor.user.fullName,
+          medico: appointment.doctor.user.fullName,
+          therapy: appointment.therapy.name,
+          terapia: appointment.therapy.name,
+          price: parseFloat(appointment.therapy.price.toString()),
+          precio: parseFloat(appointment.therapy.price.toString())
         }))
       },
       therapies: {
         total: totalTherapies,
         active: activeTherapies
       },
+      terapias: {
+        total: totalTherapies,
+        activas: activeTherapies
+      },
       finances: {
         expectedRevenue: parseFloat(expectedRevenue.toFixed(2)),
         completedRevenue: parseFloat(completedRevenue.toFixed(2)),
         pendingRevenue: parseFloat((expectedRevenue - completedRevenue).toFixed(2))
+      },
+      finanzas: {
+        ingresosEsperados: parseFloat(expectedRevenue.toFixed(2)),
+        ingresosCompletados: parseFloat(completedRevenue.toFixed(2)),
+        ingresosPendientes: parseFloat((expectedRevenue - completedRevenue).toFixed(2))
       }
     });
   } catch (error: any) {
@@ -137,7 +184,8 @@ export const getAdminStats = async (req: Request, res: Response) => {
 
 export const getFinancialStats = async (req: Request, res: Response) => {
   try {
-    const { month, year } = req.query;
+    const month = req.query.month || req.query.mes;
+    const year = req.query.year || req.query.anio || req.query.año;
 
     const whereClause: any = {};
     
@@ -262,6 +310,9 @@ export const getFinancialStats = async (req: Request, res: Response) => {
       return acc;
     }, {});
 
+    const sortedTherapies = Object.values(revenueByTherapy).sort((a: any, b: any) => b.totalRevenue - a.totalRevenue);
+    const sortedDoctors = Object.values(revenueByDoctor).sort((a: any, b: any) => b.totalRevenue - a.totalRevenue);
+
     res.json({
       summary: {
         completedRevenue: parseFloat(completedRevenue.toFixed(2)),
@@ -277,8 +328,56 @@ export const getFinancialStats = async (req: Request, res: Response) => {
           total: allAppointments.length
         }
       },
-      byTherapy: Object.values(revenueByTherapy).sort((a: any, b: any) => b.totalRevenue - a.totalRevenue),
-      byDoctor: Object.values(revenueByDoctor).sort((a: any, b: any) => b.totalRevenue - a.totalRevenue)
+      resumen: {
+        ingresosCompletados: parseFloat(completedRevenue.toFixed(2)),
+        ingresosConfirmados: parseFloat(confirmedRevenue.toFixed(2)),
+        ingresosPendientes: parseFloat(pendingRevenue.toFixed(2)),
+        ingresosPerdidos: parseFloat(lostRevenue.toFixed(2)),
+        ingresosTotal: parseFloat((completedRevenue + confirmedRevenue + pendingRevenue).toFixed(2)),
+        cantidadCitas: {
+          completadas: completed.length,
+          confirmadas: confirmed.length,
+          pendientes: pending.length,
+          canceladas: cancelled.length,
+          total: allAppointments.length
+        }
+      },
+      byTherapy: sortedTherapies.map((item: any) => ({
+        ...item,
+        nombre: item.name,
+        especialidad: item.specialty,
+        cantidadCitas: item.appointmentCount,
+        ingresosTotal: item.totalRevenue,
+        citasCompletadas: item.completedAppointments,
+        citasPendientes: item.pendingAppointments,
+        citasCanceladas: item.cancelledAppointments
+      })),
+      porTerapia: sortedTherapies.map((item: any) => ({
+        ...item,
+        nombre: item.name,
+        especialidad: item.specialty,
+        cantidadCitas: item.appointmentCount,
+        ingresosTotal: item.totalRevenue,
+        citasCompletadas: item.completedAppointments,
+        citasPendientes: item.pendingAppointments,
+        citasCanceladas: item.cancelledAppointments
+      })),
+      byDoctor: sortedDoctors.map((item: any) => ({
+        ...item,
+        nombre: item.name,
+        especialidad: item.specialty,
+        cantidadCitas: item.appointmentCount,
+        ingresosTotal: item.totalRevenue,
+        citasCompletadas: item.completedAppointments
+      })),
+      porMedico: sortedDoctors.map((item: any) => ({
+        ...item,
+        nombre: item.name,
+        especialidad: item.specialty,
+        cantidadCitas: item.appointmentCount,
+        ingresosTotal: item.totalRevenue,
+        citasCompletadas: item.completedAppointments
+      }))
     });
   } catch (error: any) {
     console.error('Error in getFinancialStats:', error);

@@ -69,9 +69,16 @@ export const register = async (req: Request, res: Response) => {
       }
     });
 
+    const formattedUser = {
+      ...user,
+      cedula: user.nationalId,
+      telefono: user.phone,
+      tipoSeguro: user.insuranceType
+    };
+
     res.status(201).json({
       message: 'User registered successfully',
-      user
+      user: formattedUser
     });
   } catch (error: any) {
     console.error('Error in register:', error);
@@ -115,19 +122,33 @@ export const login = async (req: Request, res: Response) => {
     const userData: any = {
       id: user.id,
       nationalId: user.nationalId,
+      cedula: user.nationalId,
       username: user.username,
       fullName: user.fullName,
       email: user.email,
       phone: user.phone,
+      telefono: user.phone,
       insuranceType: user.insuranceType,
+      tipoSeguro: user.insuranceType,
       role: user.role
     };
 
     if (user.doctor) {
       userData.specialty = user.doctor.specialty;
+      userData.especialidad = user.doctor.specialty;
       userData.licenseNumber = user.doctor.licenseNumber;
+      userData.numeroLicencia = user.doctor.licenseNumber;
       userData.rating = parseFloat(user.doctor.rating.toString());
+      userData.calificacion = parseFloat(user.doctor.rating.toString());
       userData.patientsServed = user.doctor.patientsServed;
+      userData.pacientesAtendidos = user.doctor.patientsServed;
+      userData.medico = {
+        id: user.doctor.id,
+        especialidad: user.doctor.specialty,
+        numeroLicencia: user.doctor.licenseNumber,
+        calificacion: parseFloat(user.doctor.rating.toString()),
+        pacientesAtendidos: user.doctor.patientsServed
+      };
     }
 
     res.json({
@@ -178,7 +199,24 @@ export const getMe = async (req: Request, res: Response) => {
       user.doctor.rating = parseFloat(user.doctor.rating.toString()) as any;
     }
 
-    res.json(user);
+    const formattedUser: any = {
+      ...user,
+      cedula: user.nationalId,
+      telefono: user.phone,
+      tipoSeguro: user.insuranceType
+    };
+
+    if (user.doctor) {
+      formattedUser.medico = {
+        id: user.doctor.id,
+        especialidad: user.doctor.specialty,
+        numeroLicencia: user.doctor.licenseNumber,
+        calificacion: user.doctor.rating,
+        pacientesAtendidos: user.doctor.patientsServed
+      };
+    }
+
+    res.json(formattedUser);
   } catch (error: any) {
     console.error('Error in getMe:', error);
     res.status(500).json({ error: error.message || 'Error retrieving user' });
