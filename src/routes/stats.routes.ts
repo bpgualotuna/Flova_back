@@ -10,5 +10,6 @@ router.use(requireRoles(['admin']));
 
 router.get('/admin', getAdminStats);
 router.get('/financial', getFinancialStats);
+router.get('/finanzas', getFinancialStats);
 
 export default router;

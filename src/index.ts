@@ -47,9 +47,13 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/appointments', appointmentsRoutes);
+app.use('/api/citas', appointmentsRoutes);
 app.use('/api/doctors', doctorsRoutes);
+app.use('/api/medicos', doctorsRoutes);
 app.use('/api/therapies', therapiesRoutes);
+app.use('/api/terapias', therapiesRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/usuarios', usersRoutes);
 app.use('/api/stats', statsRoutes);
 
 app.use(errorHandler);
