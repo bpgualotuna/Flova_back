@@ -1,24 +1,21 @@
-# Resumen del Cambio: Soporte de Rutas Duales (Inglés y Español) en el Servidor Backend
+# Resumen del Cambio: Actualización de URLs de Servidor en la Documentación de Endpoints
 
-Para solucionar el problema en el frontend (`Flova_front`) que impedía la visualización de Terapias y Citas previas en las pantallas del Dashboard y del listado de Terapias, registramos alias de rutas en español en el servidor del backend (`Flova_back`).
+Modificamos el archivo de especificación de endpoints en la arquitectura de dos servidores (`Flova_back`) para reemplazar las referencias locales (`localhost`) por las direcciones IP públicas correspondientes a los servidores de Staging/Despliegue.
 
 ---
 
 ## 🏗️ Cambios Implementados
 
-### 1. Registro de Alias de Enrutamiento (`Flova_back/src/index.ts`)
-*   Se configuró el servidor Express para que escuche y maneje las peticiones tanto en las rutas en inglés como en sus alias correspondientes en español:
-    *   `/api/appointments` ➕ `/api/citas` ➡️ `appointmentsRoutes`
-    *   `/api/doctors` ➕ `/api/medicos` ➡️ `doctorsRoutes`
-    *   `/api/therapies` ➕ `/api/terapias` ➡️ `therapiesRoutes`
-    *   `/api/users` ➕ `/api/usuarios` ➡️ `usersRoutes`
-
-### 2. Alias de Estadísticas Financieras (`Flova_back/src/routes/stats.routes.ts`)
-*   Se agregó la ruta `/finanzas` para resolver la carga de estadísticas en la interfaz del administrador:
-    *   `/api/stats/financial` ➕ `/api/stats/finanzas` ➡️ `getFinancialStats`
+### 1. Actualización de Direcciones Base (`COLECCION_INSOMNIA_COMPLETA_DOS_BACKENDS.md`)
+*   **Servidor de Reglas de Negocio / API Pública (`Flova_back`):**
+    - **Antes:** `http://localhost:4000`
+    - **Ahora:** `https://32.196.88.12`
+*   **Servidor de Persistencia / CRUD Interno (`flova_db`):**
+    - **Antes:** `http://localhost:5001`
+    - **Ahora:** `http://3.135.164.193`
 
 ---
 
 ## 🧪 Verificación y Despliegue
-*   **Compilación:** El backend compila perfectamente y sin advertencias (`npx tsc` finalizó con éxito).
-*   **GitHub:** Los cambios han sido subidos a la rama principal (`main`) de `Flova_back` (`origin/main`).
+*   **Verificación de reemplazos:** Validamos que no existan referencias remanentes a `localhost` en las URLs especificadas en la colección.
+*   **GitHub:** Los cambios han sido subidos exitosamente a la rama principal (`main`) en el repositorio remoto del backend (`Flova_back`).
