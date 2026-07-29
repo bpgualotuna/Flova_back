@@ -7,8 +7,8 @@ This document contains the complete specification of all endpoints for both serv
 ## 📌 GENERAL PARAMETERS AND CONFIGURATION
 
 ### Base URLs:
-*   **Business Logic API / Public API (`Flova_back`):** `http://localhost:4000`
-*   **Persistence Service / Internal API (`flova_db`):** `http://localhost:5001`
+*   **Business Logic API / Public API (`Flova_back`):** `https://32.196.88.12`
+*   **Persistence Service / Internal API (`flova_db`):** `http://3.135.164.193`
 
 ---
 
@@ -19,7 +19,7 @@ This server is for internal service consumption only and must not be exposed to 
 ### 1.1 Persistence Health Check
 Verifies that the database service and PostgreSQL connection are active.
 *   **Method:** `GET`
-*   **URL:** `http://localhost:5001/health`
+*   **URL:** `http://3.135.164.193/health`
 *   **Requires Token:** `NO` (Free internal access for monitoring)
 *   **Expected Response (200 OK):**
     ```json
@@ -34,9 +34,9 @@ Verifies that the database service and PostgreSQL connection are active.
 ---
 
 ### 1.2 Prisma DB Operations (Generic Query Proxy)
-All database persistence queries are handled via `POST http://localhost:5001/db/query`.
+All database persistence queries are handled via `POST http://3.135.164.193/db/query`.
 *   **Method:** `POST`
-*   **URL:** `http://localhost:5001/db/query`
+*   **URL:** `http://3.135.164.193/db/query`
 *   **Requires Token:** `YES` (Internal secret key sent in the header `X-Internal-Key: flova_secret_internal_key_2026`)
 
 #### 1.2.1 Search Multiple Records (`findMany`)
@@ -202,7 +202,7 @@ All these endpoints apply validation, run business rules, and are consumed by th
 
 #### 2.1.1 Health Check
 *   **Method:** `GET`
-*   **URL:** `http://localhost:4000/api/health`
+*   **URL:** `https://32.196.88.12/api/health`
 *   **Requires Token:** `NO` (Public)
 *   **Allowed Roles:** `Anyone` (Unauthenticated)
 *   **Expected Response (200 OK):**
@@ -217,7 +217,7 @@ All these endpoints apply validation, run business rules, and are consumed by th
 #### 2.1.2 Patient Registration
 *Aplies Ecuadorian ID format validation.*
 *   **Method:** `POST`
-*   **URL:** `http://localhost:4000/api/auth/register`
+*   **URL:** `https://32.196.88.12/api/auth/register`
 *   **Requires Token:** `NO` (Public)
 *   **Allowed Roles:** `Anyone` (Unauthenticated)
 *   **Request Body (JSON):**
@@ -250,7 +250,7 @@ All these endpoints apply validation, run business rules, and are consumed by th
 
 #### 2.1.3 User Login
 *   **Method:** `POST`
-*   **URL:** `http://localhost:4000/api/auth/login`
+*   **URL:** `https://32.196.88.12/api/auth/login`
 *   **Requires Token:** `NO` (Public)
 *   **Allowed Roles:** `Anyone` (Unauthenticated)
 *   **Request Body (JSON):**
@@ -280,7 +280,7 @@ All these endpoints apply validation, run business rules, and are consumed by th
 
 #### 2.1.4 Get Profile Info (`/me`)
 *   **Method:** `GET`
-*   **URL:** `http://localhost:4000/api/auth/me`
+*   **URL:** `https://32.196.88.12/api/auth/me`
 *   **Requires Token:** `YES` (JWT in Header `Authorization: Bearer <token>`)
 *   **Allowed Roles:** `Anyone` (Authenticated Patient, Doctor, or Admin)
 *   **Expected Response (200 OK):**
@@ -302,7 +302,7 @@ All these endpoints apply validation, run business rules, and are consumed by th
 
 #### 2.1.5 Logout
 *   **Method:** `POST`
-*   **URL:** `http://localhost:4000/api/auth/logout`
+*   **URL:** `https://32.196.88.12/api/auth/logout`
 *   **Requires Token:** `YES` (JWT in Header `Authorization: Bearer <token>`)
 *   **Allowed Roles:** `Anyone` (Authenticated Patient, Doctor, or Admin)
 *   **Expected Response (200 OK):**
@@ -319,7 +319,7 @@ All these endpoints apply validation, run business rules, and are consumed by th
 
 #### 2.2.1 Get All Therapies
 *   **Method:** `GET`
-*   **URL:** `http://localhost:4000/api/therapies`
+*   **URL:** `https://32.196.88.12/api/therapies`
 *   **Requires Token:** `NO` (Public)
 *   **Allowed Roles:** `Anyone`
 *   **Expected Response (200 OK):**
@@ -340,14 +340,14 @@ All these endpoints apply validation, run business rules, and are consumed by th
 
 #### 2.2.2 Get Therapies by Specialty
 *   **Method:** `GET`
-*   **URL:** `http://localhost:4000/api/therapies?specialty=Physiotherapy`
+*   **URL:** `https://32.196.88.12/api/therapies?specialty=Physiotherapy`
 *   **Requires Token:** `NO` (Public)
 *   **Allowed Roles:** `Anyone`
 *   **Expected Response (200 OK):** *(Lists matches only)*
 
 #### 2.2.3 Get Therapy by ID
 *   **Method:** `GET`
-*   **URL:** `http://localhost:4000/api/therapies/13`
+*   **URL:** `https://32.196.88.12/api/therapies/13`
 *   **Requires Token:** `NO` (Public)
 *   **Allowed Roles:** `Anyone`
 *   **Expected Response (200 OK):**
@@ -366,7 +366,7 @@ All these endpoints apply validation, run business rules, and are consumed by th
 
 #### 2.2.4 Create Therapy
 *   **Method:** `POST`
-*   **URL:** `http://localhost:4000/api/therapies`
+*   **URL:** `https://32.196.88.12/api/therapies`
 *   **Requires Token:** `YES` (JWT in Header `Authorization: Bearer <token>`)
 *   **Allowed Roles:** `Admin` (Other roles receive `403 Forbidden`)
 *   **Request Body (JSON):**
@@ -401,7 +401,7 @@ All these endpoints apply validation, run business rules, and are consumed by th
 
 #### 2.2.5 Update Therapy
 *   **Method:** `PUT`
-*   **URL:** `http://localhost:4000/api/therapies/13`
+*   **URL:** `https://32.196.88.12/api/therapies/13`
 *   **Requires Token:** `YES` (JWT in Header `Authorization: Bearer <token>`)
 *   **Allowed Roles:** `Admin`
 *   **Request Body (JSON):**
@@ -425,7 +425,7 @@ All these endpoints apply validation, run business rules, and are consumed by th
 
 #### 2.2.6 Delete Therapy
 *   **Method:** `DELETE`
-*   **URL:** `http://localhost:4000/api/therapies/20`
+*   **URL:** `https://32.196.88.12/api/therapies/20`
 *   **Requires Token:** `YES` (JWT in Header `Authorization: Bearer <token>`)
 *   **Allowed Roles:** `Admin`
 *   **Expected Response (200 OK):**
@@ -441,7 +441,7 @@ All these endpoints apply validation, run business rules, and are consumed by th
 
 #### 2.3.1 Get All Doctors
 *   **Method:** `GET`
-*   **URL:** `http://localhost:4000/api/doctors`
+*   **URL:** `https://32.196.88.12/api/doctors`
 *   **Requires Token:** `NO` (Public)
 *   **Allowed Roles:** `Anyone`
 *   **Expected Response (200 OK):**
@@ -467,14 +467,14 @@ All these endpoints apply validation, run business rules, and are consumed by th
 
 #### 2.3.2 Get Doctor by ID
 *   **Method:** `GET`
-*   **URL:** `http://localhost:4000/api/doctors/9`
+*   **URL:** `https://32.196.88.12/api/doctors/9`
 *   **Requires Token:** `NO` (Public)
 *   **Allowed Roles:** `Anyone`
 *   **Expected Response (200 OK):** *(Individual doctor payload details)*
 
 #### 2.3.3 Get Doctors by Specialty
 *   **Method:** `GET`
-*   **URL:** `http://localhost:4000/api/doctors/specialty/Physiotherapy`
+*   **URL:** `https://32.196.88.12/api/doctors/specialty/Physiotherapy`
 *   **Requires Token:** `NO` (Public)
 *   **Allowed Roles:** `Anyone`
 *   **Expected Response (200 OK):**
@@ -497,7 +497,7 @@ All these endpoints apply validation, run business rules, and are consumed by th
 
 #### 2.4.1 Get Available Schedules
 *   **Method:** `GET`
-*   **URL:** `http://localhost:4000/api/appointments/available-schedules?doctorId=9&date=2026-06-15`
+*   **URL:** `https://32.196.88.12/api/appointments/available-schedules?doctorId=9&date=2026-06-15`
 *   **Requires Token:** `YES` (JWT in Header `Authorization: Bearer <token>`)
 *   **Allowed Roles:** `Anyone` (Authenticated Patient, Doctor, or Admin)
 *   **Expected Response (200 OK):**
@@ -521,7 +521,7 @@ All these endpoints apply validation, run business rules, and are consumed by th
 #### 2.4.2 Book Appointment
 *Applies 12 hours minimum booking lead time check.*
 *   **Method:** `POST`
-*   **URL:** `http://localhost:4000/api/appointments`
+*   **URL:** `https://32.196.88.12/api/appointments`
 *   **Requires Token:** `YES` (JWT in Header `Authorization: Bearer <token>`)
 *   **Allowed Roles:** `Paciente` (Doctors and Admins cannot book appointments)
 *   **Request Body (JSON):**
@@ -564,7 +564,7 @@ All these endpoints apply validation, run business rules, and are consumed by th
 
 #### 2.4.3 Get My Appointments
 *   **Method:** `GET`
-*   **URL:** `http://localhost:4000/api/appointments`
+*   **URL:** `https://32.196.88.12/api/appointments`
 *   **Requires Token:** `YES` (JWT in Header `Authorization: Bearer <token>`)
 *   **Allowed Roles:** `Anyone`
     *   *If Patient:* Returns only their booked appointments.
@@ -596,14 +596,14 @@ All these endpoints apply validation, run business rules, and are consumed by th
 
 #### 2.4.4 Get Appointment by ID
 *   **Method:** `GET`
-*   **URL:** `http://localhost:4000/api/appointments/26`
+*   **URL:** `https://32.196.88.12/api/appointments/26`
 *   **Requires Token:** `YES` (JWT in Header `Authorization: Bearer <token>`)
 *   **Allowed Roles:** `Owner` or `Admin` (Only the assigned patient, the doctor, or an admin can access)
 *   **Expected Response (200 OK):** *(Individual appointment payload details)*
 
 #### 2.4.5 Update Appointment / Register Notes
 *   **Method:** `PUT`
-*   **URL:** `http://localhost:4000/api/appointments/26`
+*   **URL:** `https://32.196.88.12/api/appointments/26`
 *   **Requires Token:** `YES` (JWT in Header `Authorization: Bearer <token>`)
 *   **Allowed Roles:** `Doctor` (assigned to this appointment) or `Admin`
 *   **Request Body (JSON):**
@@ -629,7 +629,7 @@ All these endpoints apply validation, run business rules, and are consumed by th
 #### 2.4.6 Cancel Appointment
 *Requires a minimum 24-hour lead time and mandatory reason.*
 *   **Method:** `DELETE`
-*   **URL:** `http://localhost:4000/api/appointments/26`
+*   **URL:** `https://32.196.88.12/api/appointments/26`
 *   **Requires Token:** `YES` (JWT in Header `Authorization: Bearer <token>`)
 *   **Allowed Roles:** `Paciente` (Only the owner patient can cancel their appointments)
 *   **Request Body (JSON):**
@@ -656,7 +656,7 @@ All these endpoints apply validation, run business rules, and are consumed by th
 
 #### 2.5.1 Get All Users
 *   **Method:** `GET`
-*   **URL:** `http://localhost:4000/api/users`
+*   **URL:** `https://32.196.88.12/api/users`
 *   **Requires Token:** `YES` (JWT in Header `Authorization: Bearer <token>`)
 *   **Allowed Roles:** `Admin`
 *   **Optional Query Params:** `?role=medico`
@@ -674,14 +674,14 @@ All these endpoints apply validation, run business rules, and are consumed by th
 
 #### 2.5.2 Get User by ID
 *   **Method:** `GET`
-*   **URL:** `http://localhost:4000/api/users/18`
+*   **URL:** `https://32.196.88.12/api/users/18`
 *   **Requires Token:** `YES` (JWT in Header `Authorization: Bearer <token>`)
 *   **Allowed Roles:** `Owner` or `Admin`
 *   **Expected Response (200 OK):** *(Full user details)*
 
 #### 2.5.3 Update User
 *   **Method:** `PUT`
-*   **URL:** `http://localhost:4000/api/users/18`
+*   **URL:** `https://32.196.88.12/api/users/18`
 *   **Requires Token:** `YES` (JWT in Header `Authorization: Bearer <token>`)
 *   **Allowed Roles:** `Owner` or `Admin` (Note: Only Admins can modify the `role` field)
 *   **Request Body (JSON):**
@@ -708,7 +708,7 @@ All these endpoints apply validation, run business rules, and are consumed by th
 
 #### 2.5.4 Delete User
 *   **Method:** `DELETE`
-*   **URL:** `http://localhost:4000/api/users/25`
+*   **URL:** `https://32.196.88.12/api/users/25`
 *   **Requires Token:** `YES` (JWT in Header `Authorization: Bearer <token>`)
 *   **Allowed Roles:** `Admin`
 *   **Expected Response (200 OK):**
@@ -724,7 +724,7 @@ All these endpoints apply validation, run business rules, and are consumed by th
 
 #### 2.6.1 Get Admin Statistics
 *   **Method:** `GET`
-*   **URL:** `http://localhost:4000/api/stats/admin`
+*   **URL:** `https://32.196.88.12/api/stats/admin`
 *   **Requires Token:** `YES` (JWT in Header `Authorization: Bearer <token>`)
 *   **Allowed Roles:** `Admin`
 *   **Expected Response (200 OK):**
@@ -738,7 +738,7 @@ All these endpoints apply validation, run business rules, and are consumed by th
 
 #### 2.6.2 Get Financial Report
 *   **Method:** `GET`
-*   **URL:** `http://localhost:4000/api/stats/financial`
+*   **URL:** `https://32.196.88.12/api/stats/financial`
 *   **Requires Token:** `YES` (JWT in Header `Authorization: Bearer <token>`)
 *   **Allowed Roles:** `Admin`
 *   **Optional Query Params:** `?month=6&year=2026`
