@@ -16,8 +16,8 @@ pueda mostrar especialistas y determinar cuándo se pueden agendar citas.
 - `prisma/schema.prisma`
 - `src/controllers/doctors.controller.ts`
 - `src/routes/doctors.routes.ts`
-- `src/controllers/appointments.controller.ts`
-- `src/routes/appointments.routes.ts`
+- `src/routes/schedules.routes.ts`
+- `src/index.ts`
 - `src/middlewares/auth.ts`
 - `src/middlewares/roleGuard.ts`
 
@@ -59,15 +59,28 @@ pueda mostrar especialistas y determinar cuándo se pueden agendar citas.
 
 ## Checklist de entrega
 
-- [ ] Verificar relación `User`-`Medico`.
-- [ ] Completar CRUD de médicos.
-- [ ] Completar CRUD de horarios de atención.
-- [ ] Agregar validación de licencia y asociación de usuario.
-- [ ] Agregar validación de días, horas y duplicados.
-- [ ] Mantener filtro por especialidad.
-- [ ] Integrar horarios activos con disponibilidad de citas.
-- [ ] Probar médicos y horarios inexistentes o inactivos.
-- [ ] Ejecutar compilación y documentar evidencia.
+- [x] Verificar relación `User`-`Medico`.
+- [x] Completar CRUD de médicos.
+- [x] Completar CRUD de horarios de atención.
+- [x] Agregar validación de licencia y asociación de usuario.
+- [x] Agregar validación de días, horas y duplicados.
+- [x] Mantener filtro por especialidad.
+- [x] Integrar horarios activos con disponibilidad de citas.
+- [x] Probar médicos y horarios inexistentes o inactivos.
+- [x] Ejecutar compilación y documentar evidencia.
+
+## Evidencia de validación
+
+Ejecutado en la rama `david-rodriguez`:
+
+```text
+npm run build       PASS
+npm test            PASS - 17 pruebas
+npm run lint        PASS - 0 errores, 45 advertencias existentes
+health endpoint     PASS - GET /api/health -> 200
+```
+
+Las pruebas unitarias se encuentran en `tests/doctors.controller.test.ts` y mockean Prisma para validar el controlador de médicos y horarios de atención sin depender de una base de datos PostgreSQL externa.
 
 ## Criterios de aceptación
 
@@ -76,4 +89,3 @@ pueda mostrar especialistas y determinar cuándo se pueden agendar citas.
 - No se aceptan horarios con rango incorrecto o duplicados.
 - La consulta de disponibilidad solo considera médicos y horarios activos.
 - Las relaciones con usuarios y citas permanecen íntegras.
-
