@@ -58,6 +58,8 @@ rol.
 - [x] Ocultar contraseñas en todas las respuestas.
 - [x] Probar errores `400`, `401`, `403`, `404` y `409`.
 - [x] Actualizar la colección de Insomnia con ejemplos.
+- [x] Configurar y ejecutar pruebas unitarias con Jest (`npm test`).
+- [x] Configurar y ejecutar validación de código con ESLint (`npm run lint`).
 - [x] Ejecutar compilación y documentar evidencia.
 
 ## Criterios de aceptación
@@ -70,82 +72,69 @@ rol.
 
 ---
 
-## Evidencia de ejecución y pruebas
+## Evidencia de ejecución y validación
 
-### 1. Compilación TypeScript
-- Comando: `npm run build` (`tsc`)
-- Resultado: **Exitoso (Exit code 0)** sin errores de tipos o sintaxis.
-
-### 2. Suite de Pruebas Automatizadas
-- Comando: `npm test` (`tsx tests/auth-and-users.test.ts`)
-- Resultado: **46/46 pruebas exitosas (100% PASS)**
+Ejecutado en la rama `brayan-gualotuna`:
 
 ```text
---- Test Group 1: 400 Bad Request on Register ---
-  PASS: 400 on missing required fields
-  PASS: 400 on invalid Ecuadorian ID checksum/province
-  PASS: 400 on password shorter than 6 chars
-  PASS: 400 on invalid email format
-  PASS: 400 on invalid role
+npm run build       PASS - Compilación TypeScript limpia (Exit code 0)
+npm test            PASS - 37 pruebas unitarias con Jest (100% PASS)
+npm run lint        PASS - 0 errores (Exit code 0)
+```
 
---- Test Group 2: Successful Registration & Password Masking ---
-  PASS: 201 on valid patient registration
-  PASS: Password is NEVER returned in response
-  PASS: Default role is paciente
-  PASS: 201 on admin registration
+### Detalle de pruebas Jest (`npm test`):
 
---- Test Group 3: 409 Conflict on Duplicate Fields ---
-  PASS: 409 on duplicate cedula
-  PASS: 409 on duplicate email
+```text
+PASS tests/auth-and-users.test.ts
+  Flova Authentication and User Management Module (Brayan Plan)
+    1. Error 400 - Registration Validations
+      √ returns 400 on missing required fields
+      √ returns 400 on invalid Ecuadorian ID checksum/province
+      √ returns 400 on password shorter than 6 characters
+      √ returns 400 on invalid email format
+      √ returns 400 on invalid user role
+    2. Registration (201 Created) and Password Masking
+      √ registers a patient successfully without returning password
+      √ registers an administrator successfully
+    3. Error 409 - Conflict on Duplicate Records
+      √ returns 409 on duplicate cedula registration
+      √ returns 409 on duplicate email registration
+    4. Login Scenarios (400, 404, 401, 200)
+      √ returns 400 when login password is missing
+      √ returns 404 when user does not exist
+      √ returns 401 when password is incorrect
+      √ returns 200 and JWT on valid patient login without exposing password
+      √ returns 200 on valid admin login
+    5. Profile /api/auth/me and Token Validation
+      √ returns 401 when token is missing
+      √ returns 401 when token is invalid
+      √ returns 200 with user profile on valid token
+    6. Logout and Token Revocation (401)
+      √ returns 200 on logout and revokes the token
+      √ returns 401 when using a revoked token
+      √ allows user to login again and receive a new valid token
+    7. User Management Access Controls (403, 200)
+      √ returns 403 when non-admin attempts to list users
+      √ returns 200 when admin lists users
+      √ allows patient to view their own profile
+      √ returns 403 when patient attempts to view another user profile
+      √ allows admin to view any user profile
+      √ returns 400 when user ID parameter is non-numeric
+      √ returns 404 when user ID does not exist
+    8. User Updates & Ownership Guards
+      √ returns 403 when patient attempts to modify another user
+      √ returns 403 when non-admin attempts to change their role
+      √ returns 400 when updating password with fewer than 6 characters
+      √ returns 400 on invalid email update
+      √ returns 409 when updating email to an existing email
+      √ updates user profile successfully
+    9. User Deactivation and Access Blocking (Rule 6)
+      √ returns 403 when non-admin attempts to delete/deactivate user
+      √ allows admin to deactivate user
+      √ returns 401 when deactivated user attempts to log in
+      √ returns 401 when deactivated user attempts to access protected endpoint with old token
 
---- Test Group 4: Login Scenarios (400, 404, 401, 200) ---
-  PASS: 400 on missing login password
-  PASS: 404 on non-existent user
-  PASS: 401 on incorrect password
-  PASS: 200 on valid patient login
-  PASS: JWT token is returned on login
-  PASS: Login response masks password
-  PASS: 200 on valid admin login
-
---- Test Group 5: /api/auth/me and Token Validation ---
-  PASS: 401 when token is missing
-  PASS: 401 when token is invalid
-  PASS: 200 on /auth/me with valid token
-  PASS: Profile belongs to current authenticated user
-  PASS: Profile does not leak password
-
---- Test Group 6: Logout & Revoked Token (401) ---
-  PASS: 200 on /auth/logout
-  PASS: 401 Unauthorized with revoked token
-
---- Test Group 7: Role and Ownership Access Controls (403, 200) ---
-  PASS: 403 when non-admin lists users
-  PASS: 200 when admin lists users
-  PASS: Admin receives user list
-  PASS: 200 when patient views their own profile
-  PASS: 403 when patient views another user profile
-  PASS: 200 when admin views patient profile
-  PASS: 400 on non-numeric user ID
-  PASS: 404 when user ID does not exist
-
---- Test Group 8: Update User Validations & Guards ---
-  PASS: 403 when patient attempts to modify another user
-  PASS: 403 when non-admin attempts to change roles
-  PASS: 400 when updating password with < 6 chars
-  PASS: 400 on invalid email update
-  PASS: 409 when updating email to an existing email
-  PASS: 200 on valid user update
-  PASS: Phone was successfully updated
-  PASS: Insurance was successfully updated
-  PASS: Updated user response does not contain password
-
---- Test Group 9: User Deactivation and Access Blocking (Rule 6) ---
-  PASS: 403 when non-admin tries to delete/deactivate user
-  PASS: 200 when admin deactivates user
-  PASS: 401 when deactivated user attempts to log in
-  PASS: 401 when deactivated user accesses protected endpoint with token
-
-========================================
-TEST SUMMARY: 46/46 TESTS PASSED!
-========================================
+Test Suites: 1 passed, 1 total
+Tests:       37 passed, 37 total
+Snapshots:   0 total
 ```
