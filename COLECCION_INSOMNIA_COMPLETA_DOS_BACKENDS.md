@@ -215,7 +215,7 @@ All these endpoints apply validation, run business rules, and are consumed by th
     ```
 
 #### 2.1.2 Patient Registration
-*Aplies Ecuadorian ID format validation.*
+*Applies Ecuadorian ID format validation and unique constraints (`cedula`, `username`, `email`).*
 *   **Method:** `POST`
 *   **URL:** `https://32.196.88.12/api/auth/register`
 *   **Requires Token:** `NO` (Public)
@@ -223,30 +223,44 @@ All these endpoints apply validation, run business rules, and are consumed by th
 *   **Request Body (JSON):**
     ```json
     {
-      "nationalId": "1726543210",
+      "cedula": "1726543216",
       "fullName": "Pedro Sanchez Morales",
       "email": "pedro.sanchez@email.com",
-      "phone": "0987654325",
-      "insuranceType": "iess",
+      "telefono": "0987654325",
+      "tipoSeguro": "iess",
       "password": "password123"
     }
     ```
+    *(Accepts both native schema names `cedula`, `tipoSeguro`, `telefono` and legacy names `nationalId`, `insuranceType`, `phone`).*
 *   **Expected Response (201 Created):**
     ```json
     {
       "message": "User registered successfully",
       "user": {
         "id": 25,
-        "nationalId": "1726543210",
+        "cedula": "1726543216",
+        "nationalId": "1726543216",
+        "username": "1726543216",
         "fullName": "Pedro Sanchez Morales",
         "email": "pedro.sanchez@email.com",
+        "telefono": "0987654325",
         "phone": "0987654325",
+        "tipoSeguro": "iess",
         "insuranceType": "iess",
         "role": "paciente",
+        "activo": true,
         "createdAt": "2026-06-24T05:30:00.000Z"
       }
     }
     ```
+*   **Error Responses:**
+    *   **400 Bad Request (Missing Fields):** `{ "error": "Missing required fields" }`
+    *   **400 Bad Request (Invalid ID):** `{ "error": "Invalid Ecuadorian national ID" }`
+    *   **400 Bad Request (Short Password):** `{ "error": "Password must be at least 6 characters long" }`
+    *   **400 Bad Request (Invalid Email):** `{ "error": "Invalid email format" }`
+    *   **400 Bad Request (Invalid Role):** `{ "error": "Invalid role. Valid roles are: admin, medico, paciente" }`
+    *   **409 Conflict (Duplicate Cedula):** `{ "error": "A user with this national ID already exists" }`
+    *   **409 Conflict (Duplicate Email):** `{ "error": "A user with this email already exists" }`
 
 #### 2.1.3 User Login
 *   **Method:** `POST`
@@ -256,7 +270,7 @@ All these endpoints apply validation, run business rules, and are consumed by th
 *   **Request Body (JSON):**
     ```json
     {
-      "nationalId": "1234567890",
+      "cedula": "1726543216",
       "password": "password123"
     }
     ```
@@ -264,19 +278,28 @@ All these endpoints apply validation, run business rules, and are consumed by th
     ```json
     {
       "message": "Login successful",
-      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjE4LCJuYXRpb25hbElkIjoiMTIzNDU2Nzg5MCIsInJvbGUiOiJwYWNpZW50ZSIsImZ1bGxOYW1lIjoiSm9obiBEb2UifQ.xxxx",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
       "user": {
         "id": 18,
-        "nationalId": "1234567890",
-        "username": "1234567890",
-        "fullName": "John Doe",
-        "email": "john.doe@email.com",
-        "phone": "0987654321",
+        "cedula": "1726543216",
+        "nationalId": "1726543216",
+        "username": "1726543216",
+        "fullName": "Pedro Sanchez Morales",
+        "email": "pedro.sanchez@email.com",
+        "telefono": "0987654325",
+        "phone": "0987654325",
+        "tipoSeguro": "iess",
         "insuranceType": "iess",
-        "role": "paciente"
+        "role": "paciente",
+        "activo": true
       }
     }
     ```
+*   **Error Responses:**
+    *   **400 Bad Request:** `{ "error": "National ID and password are required" }`
+    *   **404 Not Found:** `{ "error": "User not found" }`
+    *   **401 Unauthorized (Incorrect Password):** `{ "error": "Incorrect password" }`
+    *   **401 Unauthorized (Deactivated User):** `{ "error": "User account is deactivated" }`
 
 #### 2.1.4 Get Profile Info (`/me`)
 *   **Method:** `GET`
@@ -287,20 +310,28 @@ All these endpoints apply validation, run business rules, and are consumed by th
     ```json
     {
       "id": 18,
-      "nationalId": "1234567890",
-      "username": "1234567890",
-      "fullName": "John Doe",
-      "email": "john.doe@email.com",
-      "phone": "0987654321",
+      "cedula": "1726543216",
+      "nationalId": "1726543216",
+      "username": "1726543216",
+      "fullName": "Pedro Sanchez Morales",
+      "email": "pedro.sanchez@email.com",
+      "telefono": "0987654325",
+      "phone": "0987654325",
+      "tipoSeguro": "iess",
       "insuranceType": "iess",
       "role": "paciente",
+      "activo": true,
       "createdAt": "2026-06-24T15:21:36.324Z",
-      "updatedAt": "2026-06-24T04:17:24.377Z",
-      "doctor": null
+      "updatedAt": "2026-06-24T04:17:24.377Z"
     }
     ```
+*   **Error Responses:**
+    *   **401 Unauthorized (Missing Token):** `{ "error": "Token not provided" }`
+    *   **401 Unauthorized (Invalid/Expired Token):** `{ "error": "Invalid or expired token" }`
+    *   **401 Unauthorized (Revoked Token):** `{ "error": "Token has been revoked" }`
 
 #### 2.1.5 Logout
+*Revokes current JWT token; subsequent requests with this token return `401 Unauthorized`.*
 *   **Method:** `POST`
 *   **URL:** `https://32.196.88.12/api/auth/logout`
 *   **Requires Token:** `YES` (JWT in Header `Authorization: Bearer <token>`)
@@ -659,37 +690,70 @@ All these endpoints apply validation, run business rules, and are consumed by th
 *   **URL:** `https://32.196.88.12/api/users`
 *   **Requires Token:** `YES` (JWT in Header `Authorization: Bearer <token>`)
 *   **Allowed Roles:** `Admin`
-*   **Optional Query Params:** `?role=medico`
+*   **Optional Query Params:** `?role=medico`, `?activo=true`
 *   **Expected Response (200 OK):**
     ```json
     [
       {
         "id": 18,
+        "cedula": "1234567890",
         "nationalId": "1234567890",
+        "username": "1234567890",
         "fullName": "John Doe",
-        "role": "paciente"
+        "email": "john.doe@email.com",
+        "telefono": "0987654321",
+        "phone": "0987654321",
+        "tipoSeguro": "iess",
+        "insuranceType": "iess",
+        "role": "paciente",
+        "activo": true
       }
     ]
     ```
+*   **Error Responses:**
+    *   **401 Unauthorized:** `{ "error": "Token not provided" }`
+    *   **403 Forbidden (Non-Admin):** `{ "error": "You do not have permission to access this resource" }`
 
 #### 2.5.2 Get User by ID
 *   **Method:** `GET`
 *   **URL:** `https://32.196.88.12/api/users/18`
 *   **Requires Token:** `YES` (JWT in Header `Authorization: Bearer <token>`)
-*   **Allowed Roles:** `Owner` or `Admin`
-*   **Expected Response (200 OK):** *(Full user details)*
+*   **Allowed Roles:** `Owner` (user's own id) or `Admin`
+*   **Expected Response (200 OK):**
+    ```json
+    {
+      "id": 18,
+      "cedula": "1234567890",
+      "nationalId": "1234567890",
+      "username": "1234567890",
+      "fullName": "John Doe",
+      "email": "john.doe@email.com",
+      "telefono": "0987654321",
+      "phone": "0987654321",
+      "tipoSeguro": "iess",
+      "insuranceType": "iess",
+      "role": "paciente",
+      "activo": true,
+      "createdAt": "2026-06-24T15:21:36.324Z",
+      "updatedAt": "2026-06-24T04:17:24.377Z"
+    }
+    ```
+*   **Error Responses:**
+    *   **400 Bad Request:** `{ "error": "Invalid user ID" }`
+    *   **403 Forbidden (Not owner/admin):** `{ "error": "You do not have permission to view this user" }`
+    *   **404 Not Found:** `{ "error": "User not found" }`
 
 #### 2.5.3 Update User
 *   **Method:** `PUT`
 *   **URL:** `https://32.196.88.12/api/users/18`
 *   **Requires Token:** `YES` (JWT in Header `Authorization: Bearer <token>`)
-*   **Allowed Roles:** `Owner` or `Admin` (Note: Only Admins can modify the `role` field)
+*   **Allowed Roles:** `Owner` or `Admin` (Note: Only Admins can modify `role` or `activo` status)
 *   **Request Body (JSON):**
     ```json
     {
       "email": "john.new@flova.com",
-      "phone": "0987654322",
-      "insuranceType": "privado"
+      "telefono": "0987654322",
+      "tipoSeguro": "privado"
     }
     ```
 *   **Expected Response (200 OK):**
@@ -698,17 +762,34 @@ All these endpoints apply validation, run business rules, and are consumed by th
       "message": "User updated successfully",
       "user": {
         "id": 18,
+        "cedula": "1234567890",
+        "nationalId": "1234567890",
+        "username": "1234567890",
         "fullName": "John Doe",
         "email": "john.new@flova.com",
+        "telefono": "0987654322",
         "phone": "0987654322",
-        "insuranceType": "privado"
+        "tipoSeguro": "privado",
+        "insuranceType": "privado",
+        "role": "paciente",
+        "activo": true
       }
     }
     ```
+*   **Error Responses:**
+    *   **400 Bad Request (Invalid ID):** `{ "error": "Invalid user ID" }`
+    *   **400 Bad Request (Password < 6):** `{ "error": "Password must be at least 6 characters long" }`
+    *   **400 Bad Request (Invalid Email):** `{ "error": "Invalid email format" }`
+    *   **403 Forbidden (Non-owner/admin):** `{ "error": "You do not have permission to modify this user" }`
+    *   **403 Forbidden (Non-admin changing role):** `{ "error": "Only administrators can change roles" }`
+    *   **404 Not Found:** `{ "error": "User not found" }`
+    *   **409 Conflict (Email taken):** `{ "error": "A user with this email already exists" }`
 
 #### 2.5.4 Delete User
+*Deactivates the user account (or permanently deletes if `?permanent=true`). Deactivated users cannot log in or perform operations.*
 *   **Method:** `DELETE`
 *   **URL:** `https://32.196.88.12/api/users/25`
+*   **Optional Query Params:** `?permanent=true`
 *   **Requires Token:** `YES` (JWT in Header `Authorization: Bearer <token>`)
 *   **Allowed Roles:** `Admin`
 *   **Expected Response (200 OK):**
@@ -717,6 +798,10 @@ All these endpoints apply validation, run business rules, and are consumed by th
       "message": "User deleted successfully"
     }
     ```
+*   **Error Responses:**
+    *   **400 Bad Request:** `{ "error": "Invalid user ID" }`
+    *   **403 Forbidden:** `{ "error": "You do not have permission to access this resource" }`
+    *   **404 Not Found:** `{ "error": "User not found" }`
 
 ---
 
