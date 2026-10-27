@@ -1,84 +1,119 @@
 import { Request, Response } from 'express';
 import prisma from '../prisma';
-import { validateMinAnticipation, validateCancellationLeadTime, validateTimeFormat, validateDateFormat } from '../utils/validators';
+import {
+  validateCancellationLeadTime,
+  validateDateFormat,
+  validateMinAnticipation,
+  validateTimeFormat
+} from '../utils/validators';
 
-const formatAppointment = (app: any) => {
-  if (!app) return null;
+const appointmentStatuses = ['pendiente', 'confirmada', 'completada', 'cancelada'];
+const activeAppointmentStatuses = ['pendiente', 'confirmada'];
+
+const toDateOnly = (date: string): Date => new Date(`${date}T00:00:00.000Z`);
+
+const formatAppointment = (appointment: any) => {
+  if (!appointment) return null;
+
+  const date = appointment.fecha instanceof Date
+    ? appointment.fecha.toISOString().split('T')[0]
+    : appointment.fecha;
+
   const formatted: any = {
-    id: app.id,
-    patientId: app.patientId,
-    pacienteId: app.patientId,
-    doctorId: app.doctorId,
-    medicoId: app.doctorId,
-    therapyId: app.therapyId,
-    terapiaId: app.therapyId,
-    date: app.date instanceof Date ? app.date.toISOString().split('T')[0] : app.date,
-    fecha: app.date instanceof Date ? app.date.toISOString().split('T')[0] : app.date,
-    time: app.time,
-    hora: app.time,
-    status: app.status,
-    estado: app.status,
-    symptoms: app.symptoms,
-    sintomas: app.symptoms,
-    hasExams: app.hasExams,
-    tieneExamenes: app.hasExams,
-    exams: app.exams,
-    examenes: app.exams,
-    cancellationReason: app.cancellationReason,
-    motivoCancelacion: app.cancellationReason,
-    doctorNotes: app.doctorNotes,
-    notasMedico: app.doctorNotes,
-    createdAt: app.createdAt,
-    updatedAt: app.updatedAt
+    id: appointment.id,
+    pacienteId: appointment.pacienteId,
+    medicoId: appointment.medicoId,
+    terapiaId: appointment.terapiaId,
+    fecha: date,
+    hora: appointment.hora,
+    estado: appointment.estado,
+    sintomas: appointment.sintomas,
+    tieneExamenes: appointment.tieneExamenes,
+    examenes: appointment.examenes,
+    motivoCancelacion: appointment.motivoCancelacion,
+    notasMedico: appointment.notasMedico,
+    createdAt: appointment.createdAt,
+    updatedAt: appointment.updatedAt
   };
 
-  if (app.patient) {
-    formatted.patient = {
-      id: app.patient.id,
-      fullName: app.patient.fullName,
-      nationalId: app.patient.nationalId,
-      cedula: app.patient.nationalId,
-      email: app.patient.email,
-      phone: app.patient.phone,
-      telefono: app.patient.phone,
-      insuranceType: app.patient.insuranceType,
-      tipoSeguro: app.patient.insuranceType
+  if (appointment.paciente) {
+    formatted.paciente = {
+      id: appointment.paciente.id,
+      fullName: appointment.paciente.fullName,
+      cedula: appointment.paciente.cedula,
+      email: appointment.paciente.email,
+      telefono: appointment.paciente.telefono,
+      tipoSeguro: appointment.paciente.tipoSeguro
     };
-    formatted.paciente = formatted.patient;
   }
 
-  if (app.doctor) {
-    formatted.doctor = {
-      id: app.doctor.id,
-      fullName: app.doctor.user?.fullName || app.doctor.fullName || '',
-      specialty: app.doctor.specialty,
-      especialidad: app.doctor.specialty,
-      licenseNumber: app.doctor.licenseNumber,
-      numeroLicencia: app.doctor.licenseNumber,
-      rating: app.doctor.rating ? parseFloat(app.doctor.rating.toString()) : 0,
-      calificacion: app.doctor.rating ? parseFloat(app.doctor.rating.toString()) : 0
+  if (appointment.medico) {
+    formatted.medico = {
+      id: appointment.medico.id,
+      fullName: appointment.medico.user?.fullName || '',
+      especialidad: appointment.medico.especialidad,
+      numeroLicencia: appointment.medico.numeroLicencia,
+      calificacion: appointment.medico.calificacion
+        ? parseFloat(appointment.medico.calificacion.toString())
+        : 0
     };
-    formatted.medico = formatted.doctor;
   }
 
-  if (app.therapy) {
-    formatted.therapy = {
-      id: app.therapy.id,
-      name: app.therapy.name,
-      nombre: app.therapy.name,
-      description: app.therapy.description,
-      descripcion: app.therapy.description,
-      specialty: app.therapy.specialty,
-      especialidad: app.therapy.specialty,
-      duration: app.therapy.duration,
-      duracion: app.therapy.duration,
-      price: app.therapy.price ? parseFloat(app.therapy.price.toString()) : 0,
-      precio: app.therapy.price ? parseFloat(app.therapy.price.toString()) : 0
+  if (appointment.terapia) {
+    formatted.terapia = {
+      id: appointment.terapia.id,
+      nombre: appointment.terapia.nombre,
+      descripcion: appointment.terapia.descripcion,
+      especialidad: appointment.terapia.especialidad,
+      duracion: appointment.terapia.duracion,
+      precio: appointment.terapia.precio
+        ? parseFloat(appointment.terapia.precio.toString())
+        : 0
     };
-    formatted.terapia = formatted.therapy;
   }
 
   return formatted;
+};
+
+const appointmentInclude = {
+  paciente: {
+    select: {
+      id: true,
+      cedula: true,
+      fullName: true,
+      email: true,
+      telefono: true,
+      tipoSeguro: true
+    }
+  },
+  medico: {
+    include: {
+      user: {
+        select: {
+          fullName: true,
+          email: true,
+          telefono: true
+        }
+      }
+    }
+  },
+  terapia: true
+};
+
+const getDoctorForUser = async (userId: number) => {
+  return prisma.medico.findUnique({ where: { userId } });
+};
+
+const canAccessAppointment = async (appointment: any, user: any): Promise<boolean> => {
+  if (user.role === 'admin') return true;
+  if (user.role === 'paciente') return appointment.pacienteId === user.userId;
+
+  if (user.role === 'medico') {
+    const doctor = await getDoctorForUser(user.userId);
+    return doctor?.id === appointment.medicoId;
+  }
+
+  return false;
 };
 
 export const getAppointments = async (req: Request, res: Response) => {
@@ -86,63 +121,35 @@ export const getAppointments = async (req: Request, res: Response) => {
     const user = (req as any).user;
     const status = req.query.status || req.query.estado;
     const date = req.query.date || req.query.fecha;
-
     const where: any = {};
 
     if (user.role === 'paciente') {
-      where.patientId = user.userId;
+      where.pacienteId = user.userId;
     } else if (user.role === 'medico') {
-      const doctor = await prisma.doctor.findUnique({
-        where: { userId: user.userId }
-      });
-      if (doctor) {
-        where.doctorId = doctor.id;
-      }
+      const doctor = await getDoctorForUser(user.userId);
+      if (!doctor) return res.json([]);
+      where.medicoId = doctor.id;
     }
 
     if (status) {
-      const statuses = (status as string).split(',').map(e => e.trim());
-      if (statuses.length > 1) {
-        where.status = { in: statuses };
-      } else {
-        where.status = statuses[0];
+      const statuses = (status as string).split(',').map(value => value.trim());
+      if (statuses.some(value => !appointmentStatuses.includes(value))) {
+        return res.status(400).json({ error: 'Invalid appointment status' });
       }
+      where.estado = statuses.length > 1 ? { in: statuses } : statuses[0];
     }
 
     if (date) {
-      where.date = new Date(date as string);
+      if (!validateDateFormat(date as string)) {
+        return res.status(400).json({ error: 'Invalid date format (must be YYYY-MM-DD)' });
+      }
+      where.fecha = toDateOnly(date as string);
     }
 
-    const appointments = await prisma.appointment.findMany({
+    const appointments = await prisma.cita.findMany({
       where,
-      include: {
-        patient: {
-          select: {
-            id: true,
-            fullName: true,
-            nationalId: true,
-            email: true,
-            phone: true,
-            insuranceType: true
-          }
-        },
-        doctor: {
-          include: {
-            user: {
-              select: {
-                fullName: true,
-                email: true,
-                phone: true
-              }
-            }
-          }
-        },
-        therapy: true
-      },
-      orderBy: [
-        { date: 'desc' },
-        { time: 'desc' }
-      ]
+      include: appointmentInclude,
+      orderBy: [{ fecha: 'desc' }, { hora: 'desc' }]
     });
 
     res.json(appointments.map(formatAppointment));
@@ -154,52 +161,21 @@ export const getAppointments = async (req: Request, res: Response) => {
 
 export const getAppointmentById = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = Number.parseInt(req.params.id, 10);
     const user = (req as any).user;
 
-    const appointment = await prisma.appointment.findUnique({
-      where: { id: parseInt(id) },
-      include: {
-        patient: {
-          select: {
-            id: true,
-            fullName: true,
-            nationalId: true,
-            email: true,
-            phone: true,
-            insuranceType: true
-          }
-        },
-        doctor: {
-          include: {
-            user: {
-              select: {
-                fullName: true,
-                email: true,
-                phone: true
-              }
-            }
-          }
-        },
-        therapy: true
-      }
+    if (Number.isNaN(id)) {
+      return res.status(400).json({ error: 'Appointment id must be a valid number' });
+    }
+
+    const appointment = await prisma.cita.findUnique({
+      where: { id },
+      include: appointmentInclude
     });
 
-    if (!appointment) {
-      return res.status(404).json({ error: 'Appointment not found' });
-    }
-
-    if (user.role === 'paciente' && appointment.patientId !== user.userId) {
+    if (!appointment) return res.status(404).json({ error: 'Appointment not found' });
+    if (!(await canAccessAppointment(appointment, user))) {
       return res.status(403).json({ error: 'You do not have permission to view this appointment' });
-    }
-
-    if (user.role === 'medico') {
-      const doctor = await prisma.doctor.findUnique({
-        where: { userId: user.userId }
-      });
-      if (doctor && appointment.doctorId !== doctor.id) {
-        return res.status(403).json({ error: 'You do not have permission to view this appointment' });
-      }
     }
 
     res.json(formatAppointment(appointment));
@@ -212,101 +188,88 @@ export const getAppointmentById = async (req: Request, res: Response) => {
 export const createAppointment = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
-    const doctorId = req.body.doctorId || req.body.medicoId;
-    const therapyId = req.body.therapyId || req.body.terapiaId;
-    const date = req.body.date || req.body.fecha;
-    const time = req.body.time || req.body.hora;
-    const symptoms = req.body.symptoms || req.body.sintomas;
-    const hasExams = req.body.hasExams !== undefined ? req.body.hasExams : req.body.tieneExamenes;
-    const exams = req.body.exams || req.body.examenes;
+    const medicoId = Number.parseInt(String(req.body.medicoId || req.body.doctorId), 10);
+    const terapiaId = Number.parseInt(String(req.body.terapiaId || req.body.therapyId), 10);
+    const fecha = req.body.fecha || req.body.date;
+    const hora = req.body.hora || req.body.time;
+    const sintomas = req.body.sintomas || req.body.symptoms;
+    const tieneExamenes = req.body.tieneExamenes ?? req.body.hasExams ?? false;
+    const examenes = req.body.examenes ?? req.body.exams ?? [];
 
-    if (!doctorId || !therapyId || !date || !time || !symptoms) {
+    if (!medicoId || !terapiaId || !fecha || !hora || !sintomas) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
-
-    if (!validateDateFormat(date)) {
-      return res.status(400).json({ error: 'Invalid date format (must be YYYY-MM-DD)' });
+    if (Number.isNaN(medicoId) || Number.isNaN(terapiaId)) {
+      return res.status(400).json({ error: 'Doctor and therapy ids must be valid numbers' });
     }
-
-    if (!validateTimeFormat(time)) {
-      return res.status(400).json({ error: 'Invalid time format (must be HH:mm)' });
+    if (!validateDateFormat(fecha) || !validateTimeFormat(hora)) {
+      return res.status(400).json({ error: 'Invalid date or time format' });
     }
-
-    if (symptoms.length < 10) {
+    if (sintomas.trim().length < 10) {
       return res.status(400).json({ error: 'Symptoms must be at least 10 characters long' });
     }
 
     try {
-      validateMinAnticipation(date, time);
+      validateMinAnticipation(fecha, hora);
     } catch (error: any) {
       return res.status(400).json({ error: error.message });
     }
 
-    const existingAppointment = await prisma.appointment.findFirst({
+    const [patient, doctor, therapy] = await Promise.all([
+      prisma.user.findUnique({ where: { id: user.userId } }),
+      prisma.medico.findUnique({ where: { id: medicoId }, include: { user: true } }),
+      prisma.terapia.findUnique({ where: { id: terapiaId } })
+    ]);
+
+    if (!patient || !patient.activo) return res.status(404).json({ error: 'Active patient not found' });
+    if (!doctor || !doctor.activo || !doctor.user?.activo) {
+      return res.status(404).json({ error: 'Active doctor not found' });
+    }
+    if (!therapy || !therapy.activa) return res.status(404).json({ error: 'Active therapy not found' });
+
+    const appointmentDate = toDateOnly(fecha);
+    const dayOfWeek = appointmentDate.getUTCDay();
+    const schedule = await prisma.horarioAtencion.findFirst({
       where: {
-        patientId: user.userId,
-        date: new Date(date),
-        time,
-        status: {
-          in: ['pending', 'confirmed']
-        }
+        medicoId,
+        diaSemana: dayOfWeek,
+        activo: true
       }
     });
 
-    if (existingAppointment) {
-      return res.status(409).json({ 
-        error: 'You already have an appointment booked at this date and time' 
-      });
+    if (!schedule || hora < schedule.horaInicio || hora >= schedule.horaFin) {
+      return res.status(400).json({ error: 'The selected time is outside the doctor schedule' });
     }
 
-    const occupiedSchedule = await prisma.appointment.findFirst({
-      where: {
-        doctorId: parseInt(doctorId),
-        date: new Date(date),
-        time,
-        status: {
-          in: ['pending', 'confirmed']
-        }
-      }
-    });
+    const [patientConflict, doctorConflict] = await Promise.all([
+      prisma.cita.findFirst({
+        where: { pacienteId: user.userId, fecha: appointmentDate, hora, estado: { in: activeAppointmentStatuses } }
+      }),
+      prisma.cita.findFirst({
+        where: { medicoId, fecha: appointmentDate, hora, estado: { in: activeAppointmentStatuses } }
+      })
+    ]);
 
-    if (occupiedSchedule) {
-      return res.status(409).json({ 
-        error: 'This schedule is already occupied' 
-      });
+    if (patientConflict) {
+      return res.status(409).json({ error: 'You already have an appointment booked at this date and time' });
+    }
+    if (doctorConflict) {
+      return res.status(409).json({ error: 'This schedule is already occupied' });
     }
 
-    const appointment = await prisma.appointment.create({
+    const appointment = await prisma.cita.create({
       data: {
-        patientId: user.userId,
-        doctorId: parseInt(doctorId),
-        therapyId: parseInt(therapyId),
-        date: new Date(date),
-        time,
-        symptoms,
-        hasExams: hasExams || false,
-        exams: exams || [],
-        status: 'pending'
+        pacienteId: user.userId,
+        medicoId,
+        terapiaId,
+        fecha: appointmentDate,
+        hora,
+        estado: 'pendiente',
+        sintomas: sintomas.trim(),
+        tieneExamenes: Boolean(tieneExamenes),
+        examenes: Array.isArray(examenes) ? examenes : []
       },
-      include: {
-        patient: {
-          select: {
-            fullName: true,
-            nationalId: true,
-            email: true
-          }
-        },
-        doctor: {
-          include: {
-            user: {
-              select: {
-                fullName: true
-              }
-            }
-          }
-        },
-        therapy: true
-      }
+      include: appointmentInclude
     });
 
     res.status(201).json({
@@ -315,40 +278,46 @@ export const createAppointment = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error in createAppointment:', error);
+    if (error.code === 'P2002') {
+      return res.status(409).json({ error: 'This schedule is already occupied' });
+    }
     res.status(500).json({ error: error.message || 'Error creating appointment' });
   }
 };
 
 export const updateAppointment = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = Number.parseInt(req.params.id, 10);
     const user = (req as any).user;
-    const status = req.body.status || req.body.estado;
-    const doctorNotes = req.body.doctorNotes !== undefined ? req.body.doctorNotes : req.body.notasMedico;
+    const estado = req.body.estado || req.body.status;
+    const notasMedico = req.body.notasMedico ?? req.body.doctorNotes;
 
-    const appointment = await prisma.appointment.findUnique({
-      where: { id: parseInt(id) }
-    });
-
-    if (!appointment) {
-      return res.status(404).json({ error: 'Appointment not found' });
+    if (Number.isNaN(id)) return res.status(400).json({ error: 'Appointment id must be a valid number' });
+    if (estado && !appointmentStatuses.includes(estado)) {
+      return res.status(400).json({ error: 'Invalid appointment status' });
     }
 
-    if (user.role === 'medico') {
-      const doctor = await prisma.doctor.findUnique({
-        where: { userId: user.userId }
-      });
-      if (doctor && appointment.doctorId !== doctor.id) {
-        return res.status(403).json({ error: 'You do not have permission to modify this appointment' });
-      }
+    const appointment = await prisma.cita.findUnique({ where: { id } });
+    if (!appointment) return res.status(404).json({ error: 'Appointment not found' });
+
+    if (!(await canAccessAppointment(appointment, user))) {
+      return res.status(403).json({ error: 'You do not have permission to modify this appointment' });
     }
 
-    const updatedAppointment = await prisma.appointment.update({
-      where: { id: parseInt(id) },
+    if (estado === 'cancelada') {
+      return res.status(400).json({ error: 'Use the cancellation endpoint for this status' });
+    }
+    if (appointment.estado === 'completada' || appointment.estado === 'cancelada') {
+      return res.status(400).json({ error: 'This appointment cannot be updated' });
+    }
+
+    const updatedAppointment = await prisma.cita.update({
+      where: { id },
       data: {
-        ...(status && { status }),
-        ...(doctorNotes !== undefined && { doctorNotes })
-      }
+        ...(estado && { estado }),
+        ...(notasMedico !== undefined && { notasMedico })
+      },
+      include: appointmentInclude
     });
 
     res.json({
@@ -363,45 +332,40 @@ export const updateAppointment = async (req: Request, res: Response) => {
 
 export const cancelAppointment = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = Number.parseInt(req.params.id, 10);
     const user = (req as any).user;
     const reason = req.body.reason || req.body.motivo;
 
-    if (!reason) {
+    if (Number.isNaN(id)) return res.status(400).json({ error: 'Appointment id must be a valid number' });
+    if (!reason || reason.trim().length < 3) {
       return res.status(400).json({ error: 'You must provide a cancellation reason' });
     }
 
-    const appointment = await prisma.appointment.findUnique({
-      where: { id: parseInt(id) }
-    });
-
-    if (!appointment) {
-      return res.status(404).json({ error: 'Appointment not found' });
-    }
-
-    if (user.role === 'paciente' && appointment.patientId !== user.userId) {
+    const appointment = await prisma.cita.findUnique({ where: { id } });
+    if (!appointment) return res.status(404).json({ error: 'Appointment not found' });
+    if (!(await canAccessAppointment(appointment, user))) {
       return res.status(403).json({ error: 'You do not have permission to cancel this appointment' });
     }
-
-    if (!['pending', 'confirmed'].includes(appointment.status)) {
+    if (!activeAppointmentStatuses.includes(appointment.estado)) {
       return res.status(400).json({ error: 'This appointment cannot be cancelled' });
     }
 
     try {
       validateCancellationLeadTime(
-        appointment.date.toISOString().split('T')[0],
-        appointment.time
+        appointment.fecha.toISOString().split('T')[0],
+        appointment.hora
       );
     } catch (error: any) {
       return res.status(400).json({ error: error.message });
     }
 
-    const cancelledAppointment = await prisma.appointment.update({
-      where: { id: parseInt(id) },
+    const cancelledAppointment = await prisma.cita.update({
+      where: { id },
       data: {
-        status: 'cancelled',
-        cancellationReason: reason
-      }
+        estado: 'cancelada',
+        motivoCancelacion: reason.trim()
+      },
+      include: appointmentInclude
     });
 
     res.json({
@@ -416,91 +380,63 @@ export const cancelAppointment = async (req: Request, res: Response) => {
 
 export const getAvailableSchedules = async (req: Request, res: Response) => {
   try {
-    const doctorId = req.query.doctorId || req.query.medicoId;
-    const date = req.query.date || req.query.fecha;
+    const doctorId = Number.parseInt(String(req.query.medicoId || req.query.doctorId), 10);
+    const date = req.query.fecha || req.query.date;
 
-    if (!doctorId || doctorId === 'undefined' || !date) {
+    if (Number.isNaN(doctorId) || !date) {
       return res.status(400).json({ error: 'doctorId and date are required' });
     }
-
     if (!validateDateFormat(date as string)) {
-      return res.status(400).json({ error: 'Invalid date format' });
+      return res.status(400).json({ error: 'Invalid date format (must be YYYY-MM-DD)' });
     }
 
-    const doctorIdNum = parseInt(doctorId as string);
-    if (isNaN(doctorIdNum)) {
-      return res.status(400).json({ error: 'doctorId must be a valid number' });
-    }
+    const dateDate = toDateOnly(date as string);
+    const doctor = await prisma.medico.findUnique({ where: { id: doctorId } });
+    if (!doctor || !doctor.activo) return res.status(404).json({ error: 'Active doctor not found' });
 
-    const dateDate = new Date(date as string);
-    const dayOfWeek = dateDate.getDay();
-
-    const schedules = await prisma.workSchedule.findMany({
+    const schedules = await prisma.horarioAtencion.findMany({
       where: {
-        doctorId: doctorIdNum,
-        dayOfWeek,
-        active: true
-      }
-    });
-
-    if (schedules.length === 0) {
-      return res.json([]);
-    }
-
-    const bookedAppointments = await prisma.appointment.findMany({
-      where: {
-        doctorId: doctorIdNum,
-        date: dateDate,
-        status: {
-          in: ['pending', 'confirmed']
-        }
+        medicoId: doctorId,
+        diaSemana: dateDate.getUTCDay(),
+        activo: true
       },
-      select: {
-        time: true
-      }
+      orderBy: { horaInicio: 'asc' }
     });
 
-    const occupiedHours = bookedAppointments.map((c: any) => c.time);
-
+    const bookedAppointments = await prisma.cita.findMany({
+      where: {
+        medicoId: doctorId,
+        fecha: dateDate,
+        estado: { in: activeAppointmentStatuses }
+      },
+      select: { hora: true }
+    });
+    const occupiedHours = new Set(bookedAppointments.map((appointment: any) => appointment.hora));
     const availableSchedules: any[] = [];
 
     for (const schedule of schedules) {
-      const [startHour, startMin] = schedule.startTime.split(':').map(Number);
-      const [endHour, endMin] = schedule.endTime.split(':').map(Number);
+      const [startHour, startMinute] = schedule.horaInicio.split(':').map(Number);
+      const [endHour, endMinute] = schedule.horaFin.split(':').map(Number);
+      let minutes = startHour * 60 + startMinute;
+      const endMinutes = endHour * 60 + endMinute;
 
-      let currentHour = startHour;
-      let currentMin = startMin;
+      while (minutes < endMinutes) {
+        const time = `${Math.floor(minutes / 60).toString().padStart(2, '0')}:${(minutes % 60).toString().padStart(2, '0')}`;
+        let available = !occupiedHours.has(time);
 
-      while (currentHour < endHour || (currentHour === endHour && currentMin < endMin)) {
-        const timeStr = `${currentHour.toString().padStart(2, '0')}:${currentMin.toString().padStart(2, '0')}`;
-        
-        let available = true;
         try {
-          validateMinAnticipation(date as string, timeStr);
+          validateMinAnticipation(date as string, time);
         } catch {
           available = false;
         }
 
-        if (occupiedHours.includes(timeStr)) {
-          available = false;
-        }
-
         availableSchedules.push({
-          date: date as string,
-          fecha: date as string,
-          time: timeStr,
-          hora: timeStr,
-          available,
+          fecha: date,
+          hora: time,
           disponible: available,
-          doctorId: doctorIdNum,
-          medicoId: doctorIdNum
+          medicoId: doctorId
         });
-
-        currentMin += 30;
-        if (currentMin >= 60) {
-          currentHour += 1;
-          currentMin = 0;
-        }
+        minutes += 30;
       }
     }
 
