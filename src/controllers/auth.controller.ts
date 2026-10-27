@@ -1,164 +1,210 @@
 import { Request, Response } from 'express';
-import jwt from 'jsonwebtoken';
 import prisma from '../prisma';
 import { hashPassword, comparePassword } from '../utils/password';
-import { generateToken } from '../utils/jwt';
-import { validateEcuadorianId } from '../utils/validators';
+import { generateToken, revokeToken } from '../utils/jwt';
+import { validateEcuadorianId, validateEmail, validatePassword, isValidRole } from '../utils/validators';
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const nationalId = req.body.nationalId || req.body.cedula;
+    const cedula = req.body.cedula || req.body.nationalId;
     const fullName = req.body.fullName;
     const email = req.body.email;
-    const phone = req.body.phone || req.body.telefono;
-    const insuranceType = req.body.insuranceType || req.body.tipoSeguro;
+    const telefono = req.body.telefono || req.body.phone;
+    const tipoSeguro = req.body.tipoSeguro || req.body.insuranceType;
     const password = req.body.password;
+    const username = req.body.username || cedula;
+    const role = req.body.role || 'paciente';
 
-    if (!nationalId || !fullName || !insuranceType || !password) {
+    if (!cedula || !fullName || !tipoSeguro || !password) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    if (!validateEcuadorianId(nationalId)) {
+    if (!validateEcuadorianId(cedula)) {
       return res.status(400).json({ error: 'Invalid Ecuadorian national ID' });
     }
 
-    if (password.length < 6) {
+    if (!validatePassword(password)) {
       return res.status(400).json({ error: 'Password must be at least 6 characters long' });
     }
 
-    const existingUser = await prisma.user.findUnique({
-      where: { nationalId }
-    });
+    if (email && !validateEmail(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
 
-    if (existingUser) {
+    if (!isValidRole(role)) {
+      return res.status(400).json({ error: 'Invalid role. Valid roles are: admin, medico, paciente' });
+    }
+
+    // Rule 1: cedula and username must be unique
+    const existingCedula = await prisma.user.findUnique({
+      where: { cedula }
+    });
+    if (existingCedula) {
       return res.status(409).json({ error: 'A user with this national ID already exists' });
     }
 
-    if (email) {
-      const existingEmail = await prisma.user.findUnique({
-        where: { email }
+    if (username !== cedula) {
+      const existingUsername = await prisma.user.findUnique({
+        where: { username }
       });
+      if (existingUsername) {
+        return res.status(409).json({ error: 'A user with this username already exists' });
+      }
+    }
 
+    // Rule 2: Email, when present, must be unique
+    if (email) {
+      const normalizedEmail = email.trim().toLowerCase();
+      const existingEmail = await prisma.user.findUnique({
+        where: { email: normalizedEmail }
+      });
       if (existingEmail) {
         return res.status(409).json({ error: 'A user with this email already exists' });
       }
     }
 
+    // Rule 3: Hash password with bcrypt
     const hashedPassword = await hashPassword(password);
 
     const user = await prisma.user.create({
       data: {
-        nationalId,
-        username: nationalId,
+        cedula,
+        username,
         fullName,
-        email,
-        phone,
-        insuranceType,
+        email: email ? email.trim().toLowerCase() : null,
+        telefono: telefono || null,
+        tipoSeguro,
         password: hashedPassword,
-        role: 'paciente'
-      },
-      select: {
-        id: true,
-        nationalId: true,
-        fullName: true,
-        email: true,
-        phone: true,
-        insuranceType: true,
-        role: true,
-        createdAt: true
+        role,
+        activo: true
       }
     });
 
+    // Rule 4: Never return password in response
     const formattedUser = {
-      ...user,
-      cedula: user.nationalId,
-      telefono: user.phone,
-      tipoSeguro: user.insuranceType
+      id: user.id,
+      cedula: user.cedula,
+      nationalId: user.cedula,
+      username: user.username,
+      fullName: user.fullName,
+      email: user.email,
+      telefono: user.telefono,
+      phone: user.telefono,
+      tipoSeguro: user.tipoSeguro,
+      insuranceType: user.tipoSeguro,
+      role: user.role,
+      activo: user.activo,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
     };
 
-    res.status(201).json({
+    return res.status(201).json({
       message: 'User registered successfully',
       user: formattedUser
     });
   } catch (error: any) {
     console.error('Error in register:', error);
-    res.status(500).json({ error: error.message || 'Error registering user' });
+    return res.status(500).json({ error: error.message || 'Error registering user' });
   }
 };
 
 export const login = async (req: Request, res: Response) => {
   try {
-    const nationalId = req.body.nationalId || req.body.cedula;
+    const identifier = req.body.cedula || req.body.nationalId || req.body.username;
     const password = req.body.password;
 
-    if (!nationalId || !password) {
+    if (!identifier || !password) {
       return res.status(400).json({ error: 'National ID and password are required' });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { nationalId },
+    let user = await prisma.user.findUnique({
+      where: { cedula: identifier },
       include: {
-        doctor: true
+        medico: true
       }
     });
+
+    if (!user) {
+      user = await prisma.user.findUnique({
+        where: { username: identifier },
+        include: {
+          medico: true
+        }
+      });
+    }
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const isValidPassword = await comparePassword(password, user.password);
+    // Rule 6: Un usuario desactivado no debe autenticarse ni realizar operaciones nuevas
+    if (user.activo === false) {
+      return res.status(401).json({ error: 'User account is deactivated' });
+    }
 
+    const isValidPassword = await comparePassword(password, user.password);
     if (!isValidPassword) {
       return res.status(401).json({ error: 'Incorrect password' });
     }
 
     const token = generateToken({
       userId: user.id,
-      nationalId: user.nationalId,
+      cedula: user.cedula,
+      nationalId: user.cedula,
+      username: user.username,
       role: user.role,
       fullName: user.fullName
     });
 
+    // Rule 4: Never return password in response
     const userData: any = {
       id: user.id,
-      nationalId: user.nationalId,
-      cedula: user.nationalId,
+      cedula: user.cedula,
+      nationalId: user.cedula,
       username: user.username,
       fullName: user.fullName,
       email: user.email,
-      phone: user.phone,
-      telefono: user.phone,
-      insuranceType: user.insuranceType,
-      tipoSeguro: user.insuranceType,
-      role: user.role
+      telefono: user.telefono,
+      phone: user.telefono,
+      tipoSeguro: user.tipoSeguro,
+      insuranceType: user.tipoSeguro,
+      role: user.role,
+      activo: user.activo,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
     };
 
-    if (user.doctor) {
-      userData.specialty = user.doctor.specialty;
-      userData.especialidad = user.doctor.specialty;
-      userData.licenseNumber = user.doctor.licenseNumber;
-      userData.numeroLicencia = user.doctor.licenseNumber;
-      userData.rating = parseFloat(user.doctor.rating.toString());
-      userData.calificacion = parseFloat(user.doctor.rating.toString());
-      userData.patientsServed = user.doctor.patientsServed;
-      userData.pacientesAtendidos = user.doctor.patientsServed;
+    if (user.medico) {
+      const calificacion = typeof user.medico.calificacion === 'number'
+        ? user.medico.calificacion
+        : parseFloat(user.medico.calificacion?.toString() || '0');
+
       userData.medico = {
-        id: user.doctor.id,
-        especialidad: user.doctor.specialty,
-        numeroLicencia: user.doctor.licenseNumber,
-        calificacion: parseFloat(user.doctor.rating.toString()),
-        pacientesAtendidos: user.doctor.patientsServed
+        id: user.medico.id,
+        especialidad: user.medico.especialidad,
+        numeroLicencia: user.medico.numeroLicencia,
+        calificacion,
+        pacientesAtendidos: user.medico.pacientesAtendidos
       };
+      userData.doctor = userData.medico;
+      userData.specialty = user.medico.especialidad;
+      userData.especialidad = user.medico.especialidad;
+      userData.licenseNumber = user.medico.numeroLicencia;
+      userData.numeroLicencia = user.medico.numeroLicencia;
+      userData.rating = calificacion;
+      userData.calificacion = calificacion;
+      userData.patientsServed = user.medico.pacientesAtendidos;
+      userData.pacientesAtendidos = user.medico.pacientesAtendidos;
     }
 
-    res.json({
+    return res.json({
       message: 'Login successful',
       token,
       user: userData
     });
   } catch (error: any) {
     console.error('Error in login:', error);
-    res.status(500).json({ error: error.message || 'Error signing in' });
+    return res.status(500).json({ error: error.message || 'Error signing in' });
   }
 };
 
@@ -168,26 +214,8 @@ export const getMe = async (req: Request, res: Response) => {
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: {
-        id: true,
-        nationalId: true,
-        username: true,
-        fullName: true,
-        email: true,
-        phone: true,
-        insuranceType: true,
-        role: true,
-        createdAt: true,
-        updatedAt: true,
-        doctor: {
-          select: {
-            id: true,
-            specialty: true,
-            licenseNumber: true,
-            rating: true,
-            patientsServed: true
-          }
-        }
+      include: {
+        medico: true
       }
     });
 
@@ -195,31 +223,55 @@ export const getMe = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    if (user.doctor) {
-      user.doctor.rating = parseFloat(user.doctor.rating.toString()) as any;
+    if (user.activo === false) {
+      return res.status(401).json({ error: 'User account is deactivated' });
     }
 
+    // Rule 4: Never return password
     const formattedUser: any = {
-      ...user,
-      cedula: user.nationalId,
-      telefono: user.phone,
-      tipoSeguro: user.insuranceType
+      id: user.id,
+      cedula: user.cedula,
+      nationalId: user.cedula,
+      username: user.username,
+      fullName: user.fullName,
+      email: user.email,
+      telefono: user.telefono,
+      phone: user.telefono,
+      tipoSeguro: user.tipoSeguro,
+      insuranceType: user.tipoSeguro,
+      role: user.role,
+      activo: user.activo,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
     };
 
-    if (user.doctor) {
+    if (user.medico) {
+      const calificacion = typeof user.medico.calificacion === 'number'
+        ? user.medico.calificacion
+        : parseFloat(user.medico.calificacion?.toString() || '0');
+
       formattedUser.medico = {
-        id: user.doctor.id,
-        especialidad: user.doctor.specialty,
-        numeroLicencia: user.doctor.licenseNumber,
-        calificacion: user.doctor.rating,
-        pacientesAtendidos: user.doctor.patientsServed
+        id: user.medico.id,
+        especialidad: user.medico.especialidad,
+        numeroLicencia: user.medico.numeroLicencia,
+        calificacion,
+        pacientesAtendidos: user.medico.pacientesAtendidos
       };
+      formattedUser.doctor = formattedUser.medico;
+      formattedUser.specialty = user.medico.especialidad;
+      formattedUser.especialidad = user.medico.especialidad;
+      formattedUser.licenseNumber = user.medico.numeroLicencia;
+      formattedUser.numeroLicencia = user.medico.numeroLicencia;
+      formattedUser.rating = calificacion;
+      formattedUser.calificacion = calificacion;
+      formattedUser.patientsServed = user.medico.pacientesAtendidos;
+      formattedUser.pacientesAtendidos = user.medico.pacientesAtendidos;
     }
 
-    res.json(formattedUser);
+    return res.json(formattedUser);
   } catch (error: any) {
     console.error('Error in getMe:', error);
-    res.status(500).json({ error: error.message || 'Error retrieving user' });
+    return res.status(500).json({ error: error.message || 'Error retrieving user' });
   }
 };
 
@@ -232,27 +284,17 @@ export const logout = async (req: Request, res: Response) => {
     const token = authHeader?.split(' ')[1];
 
     if (token) {
-      const decoded: any = jwt.decode(token);
-      const expiresAt = decoded?.exp 
-        ? new Date(decoded.exp * 1000) 
-        : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-      await prisma.blacklistedToken.create({
-        data: {
-          token,
-          expiresAt
-        }
-      });
+      await revokeToken(token);
     }
 
     console.log(`User ${fullName} (ID: ${userId}) logged out - ${new Date().toISOString()}`);
 
-    res.json({
+    return res.json({
       message: 'Session closed successfully',
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {
     console.error('Error in logout:', error);
-    res.status(500).json({ error: error.message || 'Error logging out' });
+    return res.status(500).json({ error: error.message || 'Error logging out' });
   }
 };
