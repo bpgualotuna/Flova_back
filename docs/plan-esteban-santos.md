@@ -65,14 +65,14 @@ cancelada
 
 ## Checklist de entrega
 
-- [ ] Completar creación de citas con validación de relaciones.
-- [ ] Completar listado por rol: paciente, médico y administrador.
-- [ ] Completar consulta por ID y errores `404`.
-- [ ] Implementar horarios disponibles por médico y fecha.
-- [ ] Validar anticipación, horario activo y conflictos.
-- [ ] Implementar confirmación, finalización y cancelación.
-- [ ] Validar transiciones de estado y permisos.
-- [ ] Conservar síntomas, exámenes, motivo de cancelación y notas médicas.
+- [x] Completar creación de citas con validación de relaciones.
+- [x] Completar listado por rol: paciente, médico y administrador.
+- [x] Completar consulta por ID y errores `404`.
+- [x] Implementar horarios disponibles por médico y fecha.
+- [x] Validar anticipación, horario activo y conflictos.
+- [x] Implementar confirmación, finalización y cancelación.
+- [x] Validar transiciones de estado y permisos.
+- [x] Conservar síntomas, exámenes, motivo de cancelación y notas médicas.
 - [ ] Probar doble reserva y citas con entidades inexistentes.
 - [ ] Ejecutar compilación y documentar evidencia.
 
@@ -84,4 +84,3 @@ cancelada
 - El paciente puede cancelar una cita permitida.
 - El administrador puede consultar y gestionar todas las citas.
 - El flujo completo mantiene las relaciones con usuarios, médicos y terapias.
-
