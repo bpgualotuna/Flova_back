@@ -18,7 +18,14 @@ export interface JwtPayload {
 const blacklistedTokensSet = new Set<string>();
 
 export const generateToken = (payload: JwtPayload): string => {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN as any });
+  return jwt.sign(
+    {
+      ...payload,
+      jti: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+    },
+    JWT_SECRET,
+    { expiresIn: JWT_EXPIRES_IN as any }
+  );
 };
 
 export const verifyToken = (token: string): JwtPayload => {
