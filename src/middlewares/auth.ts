@@ -29,7 +29,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
     let decoded: any;
     try {
       decoded = verifyToken(token);
-    } catch (err: any) {
+    } catch (_err: any) {
       return res.status(401).json({ error: 'Invalid or expired token' });
     }
 

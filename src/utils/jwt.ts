@@ -68,7 +68,7 @@ export const isTokenRevoked = async (token: string): Promise<boolean> => {
       blacklistedTokensSet.add(token);
       return true;
     }
-  } catch (error: any) {
+  } catch (_error: any) {
     // Database query failed, rely on in-memory set
   }
 

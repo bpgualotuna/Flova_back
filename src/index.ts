@@ -58,16 +58,20 @@ app.use('/api/stats', statsRoutes);
 
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log('');
-  console.log('🚀 ========================================');
-  console.log(`🏥 Flova Backend API`);
-  console.log(`📡 Server running on port ${PORT}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
-  console.log(`🔗 URL: http://localhost:${PORT}`);
-  console.log(`💚 Health Check: http://localhost:${PORT}/api/health`);
-  console.log('========================================== 🚀');
-  console.log('');
-});
+let server: any;
+if (process.env.NODE_ENV !== 'test') {
+  server = app.listen(PORT, () => {
+    console.log('');
+    console.log('🚀 ========================================');
+    console.log(`🏥 Flova Backend API`);
+    console.log(`📡 Server running on port ${PORT}`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
+    console.log(`🔗 URL: http://localhost:${PORT}`);
+    console.log(`💚 Health Check: http://localhost:${PORT}/api/health`);
+    console.log('========================================== 🚀');
+    console.log('');
+  });
+}
 
+export { server };
 export default app;
