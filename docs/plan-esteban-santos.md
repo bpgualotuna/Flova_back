@@ -73,8 +73,23 @@ cancelada
 - [x] Implementar confirmación, finalización y cancelación.
 - [x] Validar transiciones de estado y permisos.
 - [x] Conservar síntomas, exámenes, motivo de cancelación y notas médicas.
-- [ ] Probar doble reserva y citas con entidades inexistentes.
-- [ ] Ejecutar compilación y documentar evidencia.
+- [x] Probar doble reserva y citas con entidades inexistentes.
+- [x] Ejecutar compilación y documentar evidencia.
+
+## Evidencia de validación
+
+Ejecutado en la rama `Test`:
+
+```text
+npm run build       PASS
+npm test            PASS - 7 pruebas
+npm run lint        PASS - 0 errores, 38 advertencias existentes
+health endpoint     PASS - GET /api/health -> 200
+```
+
+Las pruebas unitarias se encuentran en
+`tests/appointments.controller.test.ts` y mockean Prisma para validar el
+controlador sin depender de una base de datos PostgreSQL.
 
 ## Criterios de aceptación
 
