@@ -83,23 +83,23 @@ model HorarioAtencion {
 // ============================================
 // MODELO: Terapia
 // ============================================
-model Terapia {
-  id            Int      @id @default(autoincrement())
-  nombre        String   @db.VarChar(100)
-  descripcion   String   @db.Text
-  especialidad  String   @db.VarChar(100)
-  duracion      Int                          // Duración en minutos
-  precio        Decimal  @db.Decimal(10, 2)
-  imagen        String?  @db.VarChar(255)
-  activa        Boolean  @default(true)
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+model Therapy {
+  id          Int      @id @default(autoincrement())
+  name        String   @map("nombre") @db.VarChar(100)
+  description String   @map("descripcion") @db.Text
+  specialty   String   @map("especialidad") @db.VarChar(100)
+  duration    Int      @map("duracion")
+  price       Decimal  @db.Decimal(10, 2)
+  image       String?  @map("imagen") @db.VarChar(255)
+  active      Boolean  @default(true) @map("activa")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
   
   // Relaciones
-  citas         Cita[]
+  appointments Cita[]
   
-  @@index([especialidad])
-  @@index([activa])
+  @@index([specialty])
+  @@index([active])
   @@map("terapias")
 }
 
@@ -125,7 +125,7 @@ model Cita {
   // Relaciones
   paciente            User      @relation("PacienteCitas", fields: [pacienteId], references: [id], onDelete: Cascade)
   medico              Medico    @relation(fields: [medicoId], references: [id], onDelete: Cascade)
-  terapia             Terapia   @relation(fields: [terapiaId], references: [id], onDelete: Cascade)
+  therapy             Therapy   @relation(fields: [terapiaId], references: [id], onDelete: Cascade)
   
   @@unique([medicoId, fecha, hora])
   @@index([pacienteId])

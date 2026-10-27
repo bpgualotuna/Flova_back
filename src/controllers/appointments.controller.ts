@@ -236,6 +236,18 @@ export const createAppointment = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Symptoms must be at least 10 characters long' });
     }
 
+    const therapy = await prisma.therapy.findUnique({
+      where: { id: parseInt(therapyId) }
+    });
+
+    if (!therapy) {
+      return res.status(404).json({ error: 'Therapy not found' });
+    }
+
+    if (!therapy.active) {
+      return res.status(409).json({ error: 'Inactive therapies cannot be booked' });
+    }
+
     try {
       validateMinAnticipation(date, time);
     } catch (error: any) {

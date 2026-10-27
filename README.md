@@ -150,12 +150,17 @@ GET  /api/auth/me          # Obtener usuario actual (requiere token)
 ### Terapias
 
 ```
-GET  /api/terapias         # Obtener todas las terapias activas
-GET  /api/terapias/:id     # Obtener terapia por ID
-POST /api/terapias         # Crear terapia (Admin)
-PUT  /api/terapias/:id     # Actualizar terapia (Admin)
-DELETE /api/terapias/:id   # Eliminar terapia (Admin)
+GET    /api/therapies         # Listar terapias activas (público)
+GET    /api/therapies/:id     # Obtener terapia por ID (público)
+POST   /api/therapies         # Crear terapia (Admin)
+PUT    /api/therapies/:id     # Actualizar terapia (Admin)
+DELETE /api/therapies/:id     # Desactivar terapia (Admin)
 ```
+
+Las mismas rutas están disponibles bajo el alias `/api/terapias`. El listado
+acepta `specialty` (o `especialidad`) y `active` (o `activa`); por defecto solo
+devuelve terapias activas. Una terapia inactiva no se puede asociar a una cita
+nueva. La eliminación es lógica para conservar las citas relacionadas.
 
 ### Médicos
 
