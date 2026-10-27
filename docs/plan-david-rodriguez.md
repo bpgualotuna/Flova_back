@@ -69,6 +69,19 @@ pueda mostrar especialistas y determinar cuándo se pueden agendar citas.
 - [x] Probar médicos y horarios inexistentes o inactivos.
 - [x] Ejecutar compilación y documentar evidencia.
 
+## Evidencia de validación
+
+Ejecutado en la rama `david-rodriguez`:
+
+```text
+npm run build       PASS
+npm test            PASS - 17 pruebas
+npm run lint        PASS - 0 errores, 45 advertencias existentes
+health endpoint     PASS - GET /api/health -> 200
+```
+
+Las pruebas unitarias se encuentran en `tests/doctors.controller.test.ts` y mockean Prisma para validar el controlador de médicos y horarios de atención sin depender de una base de datos PostgreSQL externa.
+
 ## Criterios de aceptación
 
 - Un administrador puede crear, actualizar y desactivar médicos.
