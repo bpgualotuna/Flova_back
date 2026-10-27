@@ -2,19 +2,13 @@ import http from 'http';
 import express from 'express';
 import dotenv from 'dotenv';
 
+process.env.NODE_ENV = 'test';
 dotenv.config();
 
-// Ensure test port and test db service URL
-const DB_PORT = 5005;
-const APP_PORT = 4005;
-
-process.env.PORT = String(APP_PORT);
-process.env.DB_SERVICE_URL = `http://localhost:${DB_PORT}`;
 process.env.INTERNAL_API_KEY = 'flova_secret_internal_key_2026';
 process.env.JWT_SECRET = 'test_secret_key_12345';
 process.env.JWT_EXPIRES_IN = '1h';
 
-// Mock DB Persistence Server
 const mockDb = {
   users: [] as any[],
   blacklistedTokens: [] as any[]
@@ -44,7 +38,7 @@ dbApp.post('/db/query', (req, res) => {
 
     if (operation === 'findMany') {
       const where = args?.where || {};
-      let result = mockDb.users.filter(u => {
+      const result = mockDb.users.filter(u => {
         if (where.role !== undefined && u.role !== where.role) return false;
         if (where.activo !== undefined && u.activo !== where.activo) return false;
         return true;
@@ -114,437 +108,470 @@ dbApp.post('/db/query', (req, res) => {
 });
 
 let dbServer: http.Server;
+let appServer: http.Server;
+let baseUrl = '';
 
-async function runTests() {
-  console.log('--- STARTING COMPREHENSIVE AUTH & USERS TEST SUITE ---');
+async function request(endpoint: string, options: any = {}) {
+  const res = await fetch(`${baseUrl}${endpoint}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    }
+  });
+  const body: any = await res.json().catch(() => null);
+  return { status: res.status, body };
+}
 
-  // 1. Start mock DB persistence service
-  await new Promise<void>(resolve => {
-    dbServer = dbApp.listen(DB_PORT, () => {
-      console.log(`[TEST] Mock DB server running on port ${DB_PORT}`);
-      resolve();
+describe('Flova Authentication and User Management Module (Brayan Plan)', () => {
+  let patient1Id: number;
+  let adminId: number;
+  let patientToken: string;
+  let adminToken: string;
+  let activePatientToken: string;
+
+  beforeAll(async () => {
+    await new Promise<void>(resolve => {
+      dbServer = dbApp.listen(0, () => {
+        const dbPort = (dbServer.address() as any).port;
+        process.env.DB_SERVICE_URL = `http://localhost:${dbPort}`;
+        resolve();
+      });
+    });
+
+    const app = (await import('../src/index')).default;
+    await new Promise<void>(resolve => {
+      appServer = app.listen(0, () => {
+        const appPort = (appServer.address() as any).port;
+        baseUrl = `http://localhost:${appPort}/api`;
+        resolve();
+      });
     });
   });
 
-  // Importing src/index starts the server on process.env.PORT (4005)
-  await import('../src/index');
-
-  // Wait a brief tick for server startup
-  await new Promise(r => setTimeout(r, 300));
-
-  const baseUrl = `http://localhost:${APP_PORT}/api`;
-  let passedTests = 0;
-  let totalTests = 0;
-
-  function assert(condition: boolean, testName: string, details: string = '') {
-    totalTests++;
-    if (condition) {
-      console.log(`  PASS: ${testName}`);
-      passedTests++;
-    } else {
-      console.error(`  FAIL: ${testName} - ${details}`);
-      process.exitCode = 1;
+  afterAll(async () => {
+    if (appServer && appServer.close) {
+      await new Promise<void>(resolve => appServer.close(() => resolve()));
     }
-  }
+    if (dbServer && dbServer.close) {
+      await new Promise<void>((resolve, reject) => {
+        dbServer.close(err => (err ? reject(err) : resolve()));
+      });
+    }
+  });
 
-  // Helper for requests
-  async function request(endpoint: string, options: any = {}) {
-    const res = await fetch(`${baseUrl}${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(options.headers || {})
-      }
+  describe('1. Error 400 - Registration Validations', () => {
+    it('returns 400 on missing required fields', async () => {
+      const res = await request('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ fullName: 'John Missing' })
+      });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('Missing required fields');
     });
-    const body = await res.json().catch(() => null);
-    return { status: res.status, body };
-  }
 
-  try {
-    // ----------------------------------------------------
-    // TEST 1: ERROR 400 - REGISTRATION VALIDATIONS
-    // ----------------------------------------------------
-    console.log('\n--- Test Group 1: 400 Bad Request on Register ---');
-    
-    // 1.1 Missing required fields
-    let res = await request('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({ fullName: 'John Missing' })
+    it('returns 400 on invalid Ecuadorian ID checksum/province', async () => {
+      const res = await request('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          cedula: '9999999999',
+          fullName: 'Invalid Cedula',
+          tipoSeguro: 'iess',
+          password: 'password123'
+        })
+      });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('Invalid Ecuadorian national ID');
     });
-    assert(res.status === 400, '400 on missing required fields', JSON.stringify(res.body));
 
-    // 1.2 Invalid Ecuadorian ID
-    res = await request('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({
-        cedula: '9999999999',
-        fullName: 'Invalid Cedula',
-        tipoSeguro: 'iess',
-        password: 'password123'
-      })
+    it('returns 400 on password shorter than 6 characters', async () => {
+      const res = await request('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          cedula: '1726543216',
+          fullName: 'Short Password',
+          tipoSeguro: 'iess',
+          password: '123'
+        })
+      });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('Password must be at least 6 characters long');
     });
-    assert(res.status === 400, '400 on invalid Ecuadorian ID checksum/province', JSON.stringify(res.body));
 
-    // 1.3 Password too short (< 6 chars)
-    res = await request('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({
-        cedula: '1726543210',
-        fullName: 'Short Password',
-        tipoSeguro: 'iess',
-        password: '123'
-      })
+    it('returns 400 on invalid email format', async () => {
+      const res = await request('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          cedula: '1726543216',
+          fullName: 'Invalid Email',
+          email: 'not-an-email',
+          tipoSeguro: 'iess',
+          password: 'password123'
+        })
+      });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('Invalid email format');
     });
-    assert(res.status === 400, '400 on password shorter than 6 chars', JSON.stringify(res.body));
 
-    // 1.4 Invalid email format
-    res = await request('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({
-        cedula: '1726543210',
-        fullName: 'Invalid Email',
-        email: 'not-an-email',
-        tipoSeguro: 'iess',
-        password: 'password123'
-      })
+    it('returns 400 on invalid user role', async () => {
+      const res = await request('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          cedula: '1726543216',
+          fullName: 'Invalid Role',
+          role: 'superman',
+          tipoSeguro: 'iess',
+          password: 'password123'
+        })
+      });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('Invalid role. Valid roles are: admin, medico, paciente');
     });
-    assert(res.status === 400, '400 on invalid email format', JSON.stringify(res.body));
+  });
 
-    // 1.5 Invalid role provided
-    res = await request('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({
-        cedula: '1726543210',
-        fullName: 'Invalid Role',
-        role: 'superman',
-        tipoSeguro: 'iess',
-        password: 'password123'
-      })
+  describe('2. Registration (201 Created) and Password Masking', () => {
+    it('registers a patient successfully without returning password', async () => {
+      const res = await request('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          cedula: '1726543216',
+          fullName: 'Brayan Paciente',
+          email: 'brayan.paciente@flova.com',
+          telefono: '0987654321',
+          tipoSeguro: 'iess',
+          password: 'password123'
+        })
+      });
+      expect(res.status).toBe(201);
+      expect(res.body.user).toBeDefined();
+      expect(res.body.user.password).toBeUndefined();
+      expect(res.body.user.role).toBe('paciente');
+      expect(res.body.user.cedula).toBe('1726543216');
+      expect(res.body.user.activo).toBe(true);
+      patient1Id = res.body.user.id;
     });
-    assert(res.status === 400, '400 on invalid role', JSON.stringify(res.body));
 
-    // ----------------------------------------------------
-    // TEST 2: SUCCESSFUL REGISTRATION (201 Created)
-    // ----------------------------------------------------
-    console.log('\n--- Test Group 2: Successful Registration & Password Masking ---');
-    
-    // Register Patient 1
-    res = await request('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({
-        cedula: '1726543216',
-        fullName: 'Brayan Paciente',
-        email: 'brayan.paciente@flova.com',
-        telefono: '0987654321',
-        tipoSeguro: 'iess',
-        password: 'password123'
-      })
+    it('registers an administrator successfully', async () => {
+      const res = await request('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          cedula: '1234567890',
+          fullName: 'Admin User',
+          email: 'admin@flova.com',
+          tipoSeguro: 'privado',
+          password: 'adminPassword123',
+          role: 'admin'
+        })
+      });
+      expect(res.status).toBe(201);
+      expect(res.body.user.role).toBe('admin');
+      adminId = res.body.user.id;
     });
-    assert(res.status === 201, '201 on valid patient registration', JSON.stringify(res.body));
-    assert(res.body.user && res.body.user.password === undefined, 'Password is NEVER returned in response');
-    assert(res.body.user.role === 'paciente', 'Default role is paciente');
-    const patient1Id = res.body.user.id;
+  });
 
-    // Register Admin
-    res = await request('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({
-        cedula: '1234567890',
-        fullName: 'Admin User',
-        email: 'admin@flova.com',
-        tipoSeguro: 'privado',
-        password: 'adminPassword123',
-        role: 'admin'
-      })
+  describe('3. Error 409 - Conflict on Duplicate Records', () => {
+    it('returns 409 on duplicate cedula registration', async () => {
+      const res = await request('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          cedula: '1726543216',
+          fullName: 'Duplicate Cedula',
+          email: 'other@flova.com',
+          tipoSeguro: 'iess',
+          password: 'password123'
+        })
+      });
+      expect(res.status).toBe(409);
+      expect(res.body.error).toBe('A user with this national ID already exists');
     });
-    assert(res.status === 201, '201 on admin registration', JSON.stringify(res.body));
-    const adminId = res.body.user.id;
 
-    // ----------------------------------------------------
-    // TEST 3: ERROR 409 - CONFLICT ON UNIQUE CONSTRAINTS
-    // ----------------------------------------------------
-    console.log('\n--- Test Group 3: 409 Conflict on Duplicate Fields ---');
-
-    // 3.1 Duplicate cedula
-    res = await request('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({
-        cedula: '1726543216',
-        fullName: 'Duplicate Cedula',
-        email: 'other@flova.com',
-        tipoSeguro: 'iess',
-        password: 'password123'
-      })
+    it('returns 409 on duplicate email registration', async () => {
+      const res = await request('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          cedula: '1111111111',
+          fullName: 'Duplicate Email',
+          email: 'brayan.paciente@flova.com',
+          tipoSeguro: 'iess',
+          password: 'password123'
+        })
+      });
+      expect(res.status).toBe(409);
+      expect(res.body.error).toBe('A user with this email already exists');
     });
-    assert(res.status === 409, '409 on duplicate cedula', JSON.stringify(res.body));
+  });
 
-    // 3.2 Duplicate email
-    res = await request('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({
-        cedula: '1111111111',
-        fullName: 'Duplicate Email',
-        email: 'brayan.paciente@flova.com',
-        tipoSeguro: 'iess',
-        password: 'password123'
-      })
+  describe('4. Login Scenarios (400, 404, 401, 200)', () => {
+    it('returns 400 when login password is missing', async () => {
+      const res = await request('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ cedula: '1726543216' })
+      });
+      expect(res.status).toBe(400);
     });
-    assert(res.status === 409, '409 on duplicate email', JSON.stringify(res.body));
 
-    // ----------------------------------------------------
-    // TEST 4: LOGIN & ERROR CODES (400, 404, 401)
-    // ----------------------------------------------------
-    console.log('\n--- Test Group 4: Login Scenarios (400, 404, 401, 200) ---');
-
-    // 4.1 Missing credentials
-    res = await request('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ cedula: '1726543216' })
+    it('returns 404 when user does not exist', async () => {
+      const res = await request('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ cedula: '2222222222', password: 'password123' })
+      });
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBe('User not found');
     });
-    assert(res.status === 400, '400 on missing login password', JSON.stringify(res.body));
 
-    // 4.2 User not found
-    res = await request('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ cedula: '2222222222', password: 'password123' })
+    it('returns 401 when password is incorrect', async () => {
+      const res = await request('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ cedula: '1726543216', password: 'wrongPassword' })
+      });
+      expect(res.status).toBe(401);
+      expect(res.body.error).toBe('Incorrect password');
     });
-    assert(res.status === 404, '404 on non-existent user', JSON.stringify(res.body));
 
-    // 4.3 Incorrect password
-    res = await request('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ cedula: '1726543216', password: 'wrongPassword' })
+    it('returns 200 and JWT on valid patient login without exposing password', async () => {
+      const res = await request('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ cedula: '1726543216', password: 'password123' })
+      });
+      expect(res.status).toBe(200);
+      expect(typeof res.body.token).toBe('string');
+      expect(res.body.user.password).toBeUndefined();
+      patientToken = res.body.token;
     });
-    assert(res.status === 401, '401 on incorrect password', JSON.stringify(res.body));
 
-    // 4.4 Successful patient login
-    res = await request('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ cedula: '1726543216', password: 'password123' })
+    it('returns 200 on valid admin login', async () => {
+      const res = await request('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ cedula: '1234567890', password: 'adminPassword123' })
+      });
+      expect(res.status).toBe(200);
+      expect(typeof res.body.token).toBe('string');
+      adminToken = res.body.token;
     });
-    assert(res.status === 200, '200 on valid patient login', JSON.stringify(res.body));
-    assert(res.body.token && typeof res.body.token === 'string', 'JWT token is returned on login');
-    assert(res.body.user && res.body.user.password === undefined, 'Login response masks password');
-    const patientToken = res.body.token;
+  });
 
-    // 4.5 Successful admin login
-    res = await request('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ cedula: '1234567890', password: 'adminPassword123' })
+  describe('5. Profile /api/auth/me and Token Validation', () => {
+    it('returns 401 when token is missing', async () => {
+      const res = await request('/auth/me', { method: 'GET' });
+      expect(res.status).toBe(401);
+      expect(res.body.error).toBe('Token not provided');
     });
-    assert(res.status === 200, '200 on valid admin login', JSON.stringify(res.body));
-    const adminToken = res.body.token;
 
-    // ----------------------------------------------------
-    // TEST 5: GET /me AND TOKEN VALIDATIONS (401, 200)
-    // ----------------------------------------------------
-    console.log('\n--- Test Group 5: /api/auth/me and Token Validation ---');
-
-    // 5.1 No token provided
-    res = await request('/auth/me', { method: 'GET' });
-    assert(res.status === 401, '401 when token is missing', JSON.stringify(res.body));
-
-    // 5.2 Invalid token
-    res = await request('/auth/me', {
-      method: 'GET',
-      headers: { Authorization: 'Bearer this.is.an.invalid.token' }
+    it('returns 401 when token is invalid', async () => {
+      const res = await request('/auth/me', {
+        method: 'GET',
+        headers: { Authorization: 'Bearer this.is.invalid' }
+      });
+      expect(res.status).toBe(401);
     });
-    assert(res.status === 401, '401 when token is invalid', JSON.stringify(res.body));
 
-    // 5.3 Valid patient token
-    res = await request('/auth/me', {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${patientToken}` }
+    it('returns 200 with user profile on valid token', async () => {
+      const res = await request('/auth/me', {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${patientToken}` }
+      });
+      expect(res.status).toBe(200);
+      expect(res.body.id).toBe(patient1Id);
+      expect(res.body.password).toBeUndefined();
     });
-    assert(res.status === 200, '200 on /auth/me with valid token', JSON.stringify(res.body));
-    assert(res.body.id === patient1Id, 'Profile belongs to current authenticated user');
-    assert(res.body.password === undefined, 'Profile does not leak password');
+  });
 
-    // ----------------------------------------------------
-    // TEST 6: LOGOUT AND TOKEN REVOCATION (401)
-    // ----------------------------------------------------
-    console.log('\n--- Test Group 6: Logout & Revoked Token (401) ---');
-
-    // 6.1 Logout
-    res = await request('/auth/logout', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${patientToken}` }
+  describe('6. Logout and Token Revocation (401)', () => {
+    it('returns 200 on logout and revokes the token', async () => {
+      const res = await request('/auth/logout', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${patientToken}` }
+      });
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Session closed successfully');
     });
-    assert(res.status === 200, '200 on /auth/logout', JSON.stringify(res.body));
 
-    // 6.2 Accessing protected route with revoked token must fail with 401
-    res = await request('/auth/me', {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${patientToken}` }
+    it('returns 401 when using a revoked token', async () => {
+      const res = await request('/auth/me', {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${patientToken}` }
+      });
+      expect(res.status).toBe(401);
+      expect(res.body.error).toBe('Token has been revoked');
     });
-    assert(res.status === 401, '401 Unauthorized with revoked token', JSON.stringify(res.body));
 
-    // Re-login to get fresh patient token for subsequent tests
-    const freshLogin = await request('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ cedula: '1726543216', password: 'password123' })
+    it('allows user to login again and receive a new valid token', async () => {
+      const freshLogin = await request('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ cedula: '1726543216', password: 'password123' })
+      });
+      expect(freshLogin.status).toBe(200);
+      activePatientToken = freshLogin.body.token;
+      expect(activePatientToken).not.toBe(patientToken);
     });
-    const activePatientToken = freshLogin.body.token;
+  });
 
-    // ----------------------------------------------------
-    // TEST 7: USER MANAGEMENT PERMISSIONS (403, 200)
-    // ----------------------------------------------------
-    console.log('\n--- Test Group 7: Role and Ownership Access Controls (403, 200) ---');
-
-    // 7.1 Patient trying to list all users -> 403 Forbidden
-    res = await request('/users', {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${activePatientToken}` }
+  describe('7. User Management Access Controls (403, 200)', () => {
+    it('returns 403 when non-admin attempts to list users', async () => {
+      const res = await request('/users', {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${activePatientToken}` }
+      });
+      expect(res.status).toBe(403);
     });
-    assert(res.status === 403, '403 when non-admin lists users', JSON.stringify(res.body));
 
-    // 7.2 Admin listing all users -> 200 OK
-    res = await request('/users', {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${adminToken}` }
+    it('returns 200 when admin lists users', async () => {
+      const res = await request('/users', {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body)).toBe(true);
+      expect(res.body.length).toBeGreaterThanOrEqual(2);
     });
-    assert(res.status === 200, '200 when admin lists users', JSON.stringify(res.body));
-    assert(Array.isArray(res.body) && res.body.length >= 2, 'Admin receives user list');
 
-    // 7.3 Patient viewing their own profile -> 200 OK
-    res = await request(`/users/${patient1Id}`, {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${activePatientToken}` }
+    it('allows patient to view their own profile', async () => {
+      const res = await request(`/users/${patient1Id}`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${activePatientToken}` }
+      });
+      expect(res.status).toBe(200);
+      expect(res.body.id).toBe(patient1Id);
     });
-    assert(res.status === 200, '200 when patient views their own profile', JSON.stringify(res.body));
 
-    // 7.4 Patient viewing someone else profile -> 403 Forbidden
-    res = await request(`/users/${adminId}`, {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${activePatientToken}` }
+    it('returns 403 when patient attempts to view another user profile', async () => {
+      const res = await request(`/users/${adminId}`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${activePatientToken}` }
+      });
+      expect(res.status).toBe(403);
+      expect(res.body.error).toBe('You do not have permission to view this user');
     });
-    assert(res.status === 403, '403 when patient views another user profile', JSON.stringify(res.body));
 
-    // 7.5 Admin viewing patient profile -> 200 OK
-    res = await request(`/users/${patient1Id}`, {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${adminToken}` }
+    it('allows admin to view any user profile', async () => {
+      const res = await request(`/users/${patient1Id}`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      expect(res.status).toBe(200);
+      expect(res.body.id).toBe(patient1Id);
     });
-    assert(res.status === 200, '200 when admin views patient profile', JSON.stringify(res.body));
 
-    // 7.6 Invalid ID param (e.g. /users/abc) -> 400 Bad Request
-    res = await request('/users/invalid-id', {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${adminToken}` }
+    it('returns 400 when user ID parameter is non-numeric', async () => {
+      const res = await request('/users/invalid-id', {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('Invalid user ID');
     });
-    assert(res.status === 400, '400 on non-numeric user ID', JSON.stringify(res.body));
 
-    // 7.7 Non-existent user -> 404 Not Found
-    res = await request('/users/99999', {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${adminToken}` }
+    it('returns 404 when user ID does not exist', async () => {
+      const res = await request('/users/99999', {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBe('User not found');
     });
-    assert(res.status === 404, '404 when user ID does not exist', JSON.stringify(res.body));
+  });
 
-    // ----------------------------------------------------
-    // TEST 8: UPDATE USER (403, 400, 409, 200)
-    // ----------------------------------------------------
-    console.log('\n--- Test Group 8: Update User Validations & Guards ---');
-
-    // 8.1 Patient attempting to modify another user -> 403 Forbidden
-    res = await request(`/users/${adminId}`, {
-      method: 'PUT',
-      headers: { Authorization: `Bearer ${activePatientToken}` },
-      body: JSON.stringify({ fullName: 'Hacker Attempt' })
+  describe('8. User Updates & Ownership Guards', () => {
+    it('returns 403 when patient attempts to modify another user', async () => {
+      const res = await request(`/users/${adminId}`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${activePatientToken}` },
+        body: JSON.stringify({ fullName: 'Unauthorized' })
+      });
+      expect(res.status).toBe(403);
     });
-    assert(res.status === 403, '403 when patient attempts to modify another user', JSON.stringify(res.body));
 
-    // 8.2 Patient attempting to promote themselves to admin -> 403 Forbidden
-    res = await request(`/users/${patient1Id}`, {
-      method: 'PUT',
-      headers: { Authorization: `Bearer ${activePatientToken}` },
-      body: JSON.stringify({ role: 'admin' })
+    it('returns 403 when non-admin attempts to change their role', async () => {
+      const res = await request(`/users/${patient1Id}`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${activePatientToken}` },
+        body: JSON.stringify({ role: 'admin' })
+      });
+      expect(res.status).toBe(403);
+      expect(res.body.error).toBe('Only administrators can change roles');
     });
-    assert(res.status === 403, '403 when non-admin attempts to change roles', JSON.stringify(res.body));
 
-    // 8.3 Patient updating password with < 6 chars -> 400 Bad Request
-    res = await request(`/users/${patient1Id}`, {
-      method: 'PUT',
-      headers: { Authorization: `Bearer ${activePatientToken}` },
-      body: JSON.stringify({ password: '123' })
+    it('returns 400 when updating password with fewer than 6 characters', async () => {
+      const res = await request(`/users/${patient1Id}`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${activePatientToken}` },
+        body: JSON.stringify({ password: '123' })
+      });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('Password must be at least 6 characters long');
     });
-    assert(res.status === 400, '400 when updating password with < 6 chars', JSON.stringify(res.body));
 
-    // 8.4 Patient updating with invalid email format -> 400 Bad Request
-    res = await request(`/users/${patient1Id}`, {
-      method: 'PUT',
-      headers: { Authorization: `Bearer ${activePatientToken}` },
-      body: JSON.stringify({ email: 'bad-email' })
+    it('returns 400 on invalid email update', async () => {
+      const res = await request(`/users/${patient1Id}`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${activePatientToken}` },
+        body: JSON.stringify({ email: 'bad-email' })
+      });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('Invalid email format');
     });
-    assert(res.status === 400, '400 on invalid email update', JSON.stringify(res.body));
 
-    // 8.5 Patient updating with email belonging to admin -> 409 Conflict
-    res = await request(`/users/${patient1Id}`, {
-      method: 'PUT',
-      headers: { Authorization: `Bearer ${activePatientToken}` },
-      body: JSON.stringify({ email: 'admin@flova.com' })
+    it('returns 409 when updating email to an existing email', async () => {
+      const res = await request(`/users/${patient1Id}`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${activePatientToken}` },
+        body: JSON.stringify({ email: 'admin@flova.com' })
+      });
+      expect(res.status).toBe(409);
+      expect(res.body.error).toBe('A user with this email already exists');
     });
-    assert(res.status === 409, '409 when updating email to an existing email', JSON.stringify(res.body));
 
-    // 8.6 Valid update of phone and insurance -> 200 OK
-    res = await request(`/users/${patient1Id}`, {
-      method: 'PUT',
-      headers: { Authorization: `Bearer ${activePatientToken}` },
-      body: JSON.stringify({
-        telefono: '0999999999',
-        tipoSeguro: 'privado',
-        fullName: 'Brayan Updated'
-      })
+    it('updates user profile successfully', async () => {
+      const res = await request(`/users/${patient1Id}`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${activePatientToken}` },
+        body: JSON.stringify({
+          telefono: '0999999999',
+          tipoSeguro: 'privado',
+          fullName: 'Brayan Updated'
+        })
+      });
+      expect(res.status).toBe(200);
+      expect(res.body.user.phone).toBe('0999999999');
+      expect(res.body.user.tipoSeguro).toBe('privado');
+      expect(res.body.user.password).toBeUndefined();
     });
-    assert(res.status === 200, '200 on valid user update', JSON.stringify(res.body));
-    assert(res.body.user.phone === '0999999999', 'Phone was successfully updated');
-    assert(res.body.user.tipoSeguro === 'privado', 'Insurance was successfully updated');
-    assert(res.body.user.password === undefined, 'Updated user response does not contain password');
+  });
 
-    // ----------------------------------------------------
-    // TEST 9: DEACTIVATE / DELETE USER AND DEACTIVATED CHECKS
-    // ----------------------------------------------------
-    console.log('\n--- Test Group 9: User Deactivation and Access Blocking (Rule 6) ---');
-
-    // 9.1 Patient trying to delete a user -> 403 Forbidden
-    res = await request(`/users/${patient1Id}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${activePatientToken}` }
+  describe('9. User Deactivation and Access Blocking (Rule 6)', () => {
+    it('returns 403 when non-admin attempts to delete/deactivate user', async () => {
+      const res = await request(`/users/${patient1Id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${activePatientToken}` }
+      });
+      expect(res.status).toBe(403);
     });
-    assert(res.status === 403, '403 when non-admin tries to delete/deactivate user', JSON.stringify(res.body));
 
-    // 9.2 Admin deactivates patient
-    res = await request(`/users/${patient1Id}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${adminToken}` }
+    it('allows admin to deactivate user', async () => {
+      const res = await request(`/users/${patient1Id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('User deleted successfully');
     });
-    assert(res.status === 200, '200 when admin deactivates user', JSON.stringify(res.body));
 
-    // 9.3 Deactivated user cannot authenticate (login) -> 401 Unauthorized
-    res = await request('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ cedula: '1726543216', password: 'password123' })
+    it('returns 401 when deactivated user attempts to log in', async () => {
+      const res = await request('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ cedula: '1726543216', password: 'password123' })
+      });
+      expect(res.status).toBe(401);
+      expect(res.body.error).toBe('User account is deactivated');
     });
-    assert(res.status === 401, '401 when deactivated user attempts to log in', JSON.stringify(res.body));
 
-    // 9.4 Deactivated user cannot execute operations with existing token -> 401 Unauthorized
-    res = await request('/auth/me', {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${activePatientToken}` }
+    it('returns 401 when deactivated user attempts to access protected endpoint with old token', async () => {
+      const res = await request('/auth/me', {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${activePatientToken}` }
+      });
+      expect(res.status).toBe(401);
+      expect(res.body.error).toBe('User account is deactivated');
     });
-    assert(res.status === 401, '401 when deactivated user accesses protected endpoint with token', JSON.stringify(res.body));
-
-    console.log(`\n========================================`);
-    console.log(`TEST SUMMARY: ${passedTests}/${totalTests} TESTS PASSED!`);
-    console.log(`========================================\n`);
-
-  } finally {
-    if (dbServer) dbServer.close();
-    process.exit(process.exitCode || 0);
-  }
-}
-
-runTests().catch(err => {
-  console.error('Fatal error running tests:', err);
-  process.exit(1);
+  });
 });
