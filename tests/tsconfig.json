@@ -1,9 +1,0 @@
-{
-  "extends": "../tsconfig.json",
-  "compilerOptions": {
-    "rootDir": "..",
-    "types": ["jest", "node"]
-  },
-  "include": ["./therapies.controller.test.ts"],
-  "exclude": ["../node_modules", "../dist"]
-}

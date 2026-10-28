@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1793218190817" clover="3.2.0">
-  <project timestamp="1793218190817" name="All files">
+<coverage generated="1793219839546" clover="3.2.0">
+  <project timestamp="1793219839546" name="All files">
     <metrics statements="158" coveredstatements="111" conditionals="76" coveredconditionals="27" methods="14" coveredmethods="13" elements="248" coveredelements="151" complexity="0" loc="158" ncloc="158" packages="1" files="1" classes="1"/>
     <file name="therapies.controller.ts" path="C:\Users\Usuario\Documents\Flova_back\src\controllers\therapies.controller.ts">
       <metrics statements="158" coveredstatements="111" conditionals="76" coveredconditionals="27" methods="14" coveredmethods="13"/>
