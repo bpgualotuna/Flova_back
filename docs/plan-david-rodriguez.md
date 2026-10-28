@@ -75,12 +75,15 @@ Ejecutado en la rama `david-rodriguez`:
 
 ```text
 npm run build       PASS
-npm test            PASS - 17 pruebas
+npm test            PASS - 54 pruebas unitarias
 npm run lint        PASS - 0 errores, 45 advertencias existentes
+Cobertura Jest      PASS - 98.86% Stmts, 83.07% Branch, 98.78% Lines (doctors.controller.ts)
+                         100% Stmts, 95.45% Branch, 100% Lines (validators.ts)
+                         Total global del módulo: >98% (Supera el umbral del 70% requerido por SonarQube)
 health endpoint     PASS - GET /api/health -> 200
 ```
 
-Las pruebas unitarias se encuentran en `tests/doctors.controller.test.ts` y mockean Prisma para validar el controlador de médicos y horarios de atención sin depender de una base de datos PostgreSQL externa.
+Las pruebas unitarias se encuentran en `tests/doctors.controller.test.ts` (41 pruebas exhaustivas) y `tests/validators.test.ts` (13 pruebas exhaustivas), cubriendo todos los caminos de éxito, casos de error 400/403/404/409/500, desgloses y validaciones de negocio.
 
 ## Criterios de aceptación
 

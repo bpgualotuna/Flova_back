@@ -7,16 +7,11 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-<<<<<<< HEAD
     "test": "jest --runInBand --forceExit",
     "test:coverage": "jest --coverage --runInBand --forceExit",
     "test:watch": "jest --watch",
     "lint": "eslint .",
     "sonar": "sonar-scanner"
-=======
-    "lint": "eslint .",
-    "test": "jest --runInBand"
->>>>>>> jonathan-ampuero
   },
   "keywords": [
     "medical",
@@ -50,22 +45,15 @@
     "seed": "npx tsx prisma/seed.ts"
   },
   "devDependencies": {
-<<<<<<< HEAD
     "@eslint/js": "^10.0.1",
     "@types/jest": "^30.0.0",
+    "@typescript-eslint/parser": "^8.72.1",
     "eslint": "^10.13.0",
+    "globals": "^17.13.0",
     "jest": "^30.5.2",
     "nodemon": "^3.0.1",
-    "sonarqube-scanner": "^5.0.2",
-=======
-    "@types/jest": "^29.5.14",
-    "@typescript-eslint/parser": "^8.72.1",
-    "eslint": "^9.39.5",
-    "globals": "^17.13.0",
-    "jest": "^29.7.0",
-    "nodemon": "^3.0.1",
     "prisma": "^5.22.0",
->>>>>>> jonathan-ampuero
+    "sonarqube-scanner": "^5.0.2",
     "ts-jest": "^29.4.15",
     "ts-node": "^10.9.2",
     "tsx": "^4.7.0",
