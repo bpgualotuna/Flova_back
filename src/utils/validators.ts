@@ -57,3 +57,20 @@ export const validateEcuadorianId = (nationalId: string): boolean => {
   
   return result === verificationDigit;
 };
+
+export const validateEmail = (email: string): boolean => {
+  if (!email || typeof email !== 'string') return false;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email.trim());
+};
+
+export const validatePassword = (password: string): boolean => {
+  return typeof password === 'string' && password.length >= 6;
+};
+
+export const VALID_ROLES = ['admin', 'medico', 'paciente'] as const;
+export type UserRole = (typeof VALID_ROLES)[number];
+
+export const isValidRole = (role: string): role is UserRole => {
+  return VALID_ROLES.includes(role as UserRole);
+};
