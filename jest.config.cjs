@@ -6,5 +6,7 @@ module.exports = {
   roots: ['<rootDir>/tests'],
   testMatch: ['**/*.test.ts'],
   collectCoverageFrom: ['src/**/*.ts'],
+  coverageDirectory: 'coverage',
+  coverageReporters: ['text', 'lcov'],
   clearMocks: true
 };
