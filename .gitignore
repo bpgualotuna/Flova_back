@@ -17,6 +17,11 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Testing & Quality
+coverage/
+.scannerwork/
+.tsupgrader/
+
 # OS
 .DS_Store
 Thumbs.db
