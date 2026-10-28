@@ -11,6 +11,7 @@ async function main() {
   await prisma.cita.deleteMany();
   await prisma.horarioAtencion.deleteMany();
   await prisma.medico.deleteMany();
+ 
   await prisma.terapia.deleteMany();
   await prisma.user.deleteMany();
   console.log('✅ Datos limpiados\n');
@@ -267,73 +268,73 @@ async function main() {
 
   const terapia1 = await prisma.terapia.create({
     data: {
-      nombre: 'Fisioterapia Deportiva',
-      descripcion: 'Tratamiento especializado para lesiones deportivas y recuperación de atletas. Incluye técnicas de rehabilitación avanzadas.',
-      especialidad: 'Fisioterapia',
-      duracion: 60,
-      precio: 45.00,
-      imagen: 'https://picsum.photos/seed/fisio1/400/300',
-      activa: true
+      name: 'Fisioterapia Deportiva',
+      description: 'Tratamiento especializado para lesiones deportivas y recuperación de atletas. Incluye técnicas de rehabilitación avanzadas.',
+      specialty: 'Fisioterapia',
+      duration: 60,
+      price: 45.00,
+      image: 'https://picsum.photos/seed/fisio1/400/300',
+      active: true
     }
   });
 
   const terapia2 = await prisma.terapia.create({
     data: {
-      nombre: 'Rehabilitación Post-Quirúrgica',
-      descripcion: 'Programa de rehabilitación integral después de cirugías ortopédicas. Recuperación funcional completa.',
-      especialidad: 'Fisioterapia',
-      duracion: 75,
-      precio: 65.00,
-      imagen: 'https://picsum.photos/seed/fisio2/400/300',
-      activa: true
+      name: 'Rehabilitación Post-Quirúrgica',
+      description: 'Programa de rehabilitación integral después de cirugías ortopédicas. Recuperación funcional completa.',
+      specialty: 'Fisioterapia',
+      duration: 75,
+      price: 65.00,
+      image: 'https://picsum.photos/seed/fisio2/400/300',
+      active: true
     }
   });
 
   const terapia3 = await prisma.terapia.create({
     data: {
-      nombre: 'Terapia Ocupacional Pediátrica',
-      descripcion: 'Intervención temprana para niños con dificultades en el desarrollo motor y cognitivo.',
-      especialidad: 'Terapia Ocupacional',
-      duracion: 45,
-      precio: 50.00,
-      imagen: 'https://picsum.photos/seed/to1/400/300',
-      activa: true
+      name: 'Terapia Ocupacional Pediátrica',
+      description: 'Intervención temprana para niños con dificultades en el desarrollo motor y cognitivo.',
+      specialty: 'Terapia Ocupacional',
+      duration: 45,
+      price: 50.00,
+      image: 'https://picsum.photos/seed/to1/400/300',
+      active: true
     }
   });
 
   const terapia4 = await prisma.terapia.create({
     data: {
-      nombre: 'Terapia Ocupacional para Adultos Mayores',
-      descripcion: 'Mejora de la independencia funcional y calidad de vida en adultos mayores.',
-      especialidad: 'Terapia Ocupacional',
-      duracion: 60,
-      precio: 55.00,
-      imagen: 'https://picsum.photos/seed/to2/400/300',
-      activa: true
+      name: 'Terapia Ocupacional para Adultos Mayores',
+      description: 'Mejora de la independencia funcional y calidad de vida en adultos mayores.',
+      specialty: 'Terapia Ocupacional',
+      duration: 60,
+      price: 55.00,
+      image: 'https://picsum.photos/seed/to2/400/300',
+      active: true
     }
   });
 
   const terapia5 = await prisma.terapia.create({
     data: {
-      nombre: 'Terapia Cognitivo-Conductual',
-      descripcion: 'Tratamiento psicológico para ansiedad, depresión y otros trastornos emocionales.',
-      especialidad: 'Psicología',
-      duracion: 60,
-      precio: 55.00,
-      imagen: 'https://picsum.photos/seed/psi1/400/300',
-      activa: true
+      name: 'Terapia Cognitivo-Conductual',
+      description: 'Tratamiento psicológico para ansiedad, depresión y otros trastornos emocionales.',
+      specialty: 'Psicología',
+      duration: 60,
+      price: 55.00,
+      image: 'https://picsum.photos/seed/psi1/400/300',
+      active: true
     }
   });
 
   const terapia6 = await prisma.terapia.create({
     data: {
-      nombre: 'Terapia Familiar',
-      descripcion: 'Intervención psicológica para mejorar la comunicación y resolver conflictos familiares.',
-      especialidad: 'Psicología',
-      duracion: 90,
-      precio: 75.00,
-      imagen: 'https://picsum.photos/seed/psi2/400/300',
-      activa: true
+      name: 'Terapia Familiar',
+      description: 'Intervención psicológica para mejorar la comunicación y resolver conflictos familiares.',
+      specialty: 'Psicología',
+      duration: 90,
+      price: 75.00,
+      image: 'https://picsum.photos/seed/psi2/400/300',
+      active: true
     }
   });
 

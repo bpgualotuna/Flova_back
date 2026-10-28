@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
 
@@ -17,3 +18,27 @@ export default tseslint.config(
     }
   }
 );
+=======
+import globals from 'globals';
+import tsParser from '@typescript-eslint/parser';
+
+export default [
+  {
+    ignores: ['dist/**', 'node_modules/**']
+  },
+  {
+    files: ['**/*.ts'],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module'
+      },
+      globals: {
+        ...globals.node,
+        ...globals.jest
+      }
+    }
+  }
+];
+>>>>>>> jonathan-ampuero
