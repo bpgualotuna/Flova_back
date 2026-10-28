@@ -209,18 +209,6 @@ export const createAppointment = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Symptoms must be at least 10 characters long' });
     }
 
-    const therapy = await prisma.therapy.findUnique({
-      where: { id: parseInt(therapyId) }
-    });
-
-    if (!therapy) {
-      return res.status(404).json({ error: 'Therapy not found' });
-    }
-
-    if (!therapy.active) {
-      return res.status(409).json({ error: 'Inactive therapies cannot be booked' });
-    }
-
     try {
       validateMinAnticipation(fecha, hora);
     } catch (error: any) {
@@ -237,7 +225,7 @@ export const createAppointment = async (req: Request, res: Response) => {
     if (!doctor || !doctor.activo || !doctor.user?.activo) {
       return res.status(404).json({ error: 'Active doctor not found' });
     }
-    if (!therapy || !therapy.activa) return res.status(404).json({ error: 'Active therapy not found' });
+    if (!therapy || !((therapy as any).activa ?? (therapy as any).active)) return res.status(404).json({ error: 'Active therapy not found' });
 
     const appointmentDate = toDateOnly(fecha);
     const dayOfWeek = appointmentDate.getUTCDay();

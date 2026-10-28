@@ -90,8 +90,8 @@ const checkScheduleConflict = async (
   });
 
   for (const schedule of existingSchedules) {
-    const sStart = schedule.horaInicio || schedule.startTime;
-    const sEnd = schedule.horaFin || schedule.endTime;
+    const sStart = schedule.horaInicio || (schedule as any).startTime;
+    const sEnd = schedule.horaFin || (schedule as any).endTime;
 
     // Overlap condition: startA < endB && endA > startB
     if (horaInicio < sEnd && horaFin > sStart) {
