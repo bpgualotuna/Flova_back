@@ -83,7 +83,7 @@ model HorarioAtencion {
 // ============================================
 // MODELO: Terapia
 // ============================================
-model Therapy {
+model Terapia {
   id          Int      @id @default(autoincrement())
   name        String   @map("nombre") @db.VarChar(100)
   description String   @map("descripcion") @db.Text
@@ -125,7 +125,7 @@ model Cita {
   // Relaciones
   paciente            User      @relation("PacienteCitas", fields: [pacienteId], references: [id], onDelete: Cascade)
   medico              Medico    @relation(fields: [medicoId], references: [id], onDelete: Cascade)
-  therapy             Therapy   @relation(fields: [terapiaId], references: [id], onDelete: Cascade)
+  therapy             Terapia   @relation(fields: [terapiaId], references: [id], onDelete: Cascade)
   
   @@unique([medicoId, fecha, hora])
   @@index([pacienteId])

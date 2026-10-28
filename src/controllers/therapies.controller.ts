@@ -143,7 +143,7 @@ export const getTherapies = async (req: Request, res: Response) => {
       where.active = true;
     }
 
-    const therapies = await prisma.therapy.findMany({
+    const therapies = await prisma.terapia.findMany({
       where,
       orderBy: { name: 'asc' }
     });
@@ -161,7 +161,7 @@ export const getTherapyById = async (req: Request, res: Response) => {
   }
 
   try {
-    const therapy = await prisma.therapy.findUnique({ where: { id } });
+    const therapy = await prisma.terapia.findUnique({ where: { id } });
 
     if (!therapy) {
       return res.status(404).json({ error: 'Therapy not found' });
@@ -208,7 +208,7 @@ export const createTherapy = async (req: Request, res: Response) => {
   }
 
   try {
-    const therapy = await prisma.therapy.create({
+    const therapy = await prisma.terapia.create({
       data: {
         name,
         description,
@@ -298,12 +298,12 @@ export const updateTherapy = async (req: Request, res: Response) => {
   }
 
   try {
-    const existing = await prisma.therapy.findUnique({ where: { id } });
+    const existing = await prisma.terapia.findUnique({ where: { id } });
     if (!existing) {
       return res.status(404).json({ error: 'Therapy not found' });
     }
 
-    const therapy = await prisma.therapy.update({ where: { id }, data });
+    const therapy = await prisma.terapia.update({ where: { id }, data });
     return res.json({
       message: 'Therapy updated successfully',
       therapy: formatTherapy(therapy)
@@ -323,12 +323,12 @@ export const deleteTherapy = async (req: Request, res: Response) => {
   }
 
   try {
-    const existing = await prisma.therapy.findUnique({ where: { id } });
+    const existing = await prisma.terapia.findUnique({ where: { id } });
     if (!existing) {
       return res.status(404).json({ error: 'Therapy not found' });
     }
 
-    const therapy = await prisma.therapy.update({
+    const therapy = await prisma.terapia.update({
       where: { id },
       data: { active: false }
     });
