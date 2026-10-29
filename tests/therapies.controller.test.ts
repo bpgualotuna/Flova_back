@@ -99,6 +99,35 @@ describe('therapies.controller', () => {
       ]);
     });
 
+    it('filters therapies by Spanish specialty and inactive status', async () => {
+      prismaMock.terapia.findMany.mockResolvedValue([]);
+      const req = createRequest({
+        query: { especialidad: 'Fisioterapia', activa: 'false' }
+      });
+      const res = createResponse();
+
+      await getTherapies(req, res);
+
+      expect(prismaMock.terapia.findMany).toHaveBeenCalledWith({
+        where: { specialty: 'Fisioterapia', active: false },
+        orderBy: { name: 'asc' }
+      });
+      expect(res.json).toHaveBeenCalledWith([]);
+    });
+
+    it('returns status 400 when the active filter is invalid', async () => {
+      const req = createRequest({ query: { active: 'yes' } });
+      const res = createResponse();
+
+      await getTherapies(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'Active filter must be true or false'
+      });
+      expect(prismaMock.terapia.findMany).not.toHaveBeenCalled();
+    });
+
     it('returns status 500 when retrieving therapies fails', async () => {
       prismaMock.terapia.findMany.mockRejectedValue(new Error('Database error'));
       const req = createRequest();
@@ -114,6 +143,17 @@ describe('therapies.controller', () => {
   });
 
   describe('getTherapyById', () => {
+    it('returns status 400 when the therapy ID is invalid', async () => {
+      const req = createRequest({ params: { id: 'invalid' } });
+      const res = createResponse();
+
+      await getTherapyById(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Invalid therapy ID' });
+      expect(prismaMock.terapia.findUnique).not.toHaveBeenCalled();
+    });
+
     it('returns 404 when the therapy does not exist', async () => {
       prismaMock.terapia.findUnique.mockResolvedValue(null);
       const req = createRequest({ params: { id: '99' } });
@@ -183,6 +223,48 @@ describe('therapies.controller', () => {
       });
     });
 
+    it('returns status 400 when duration is not a positive integer', async () => {
+      const req = createRequest({
+        body: {
+          nombre: 'Fisioterapia Deportiva',
+          descripcion: 'Tratamiento para lesiones deportivas.',
+          especialidad: 'Fisioterapia',
+          duracion: 0,
+          precio: 45
+        }
+      });
+      const res = createResponse();
+
+      await createTherapy(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'Duration must be a positive integer'
+      });
+      expect(prismaMock.terapia.create).not.toHaveBeenCalled();
+    });
+
+    it('returns status 400 when price is negative', async () => {
+      const req = createRequest({
+        body: {
+          nombre: 'Fisioterapia Deportiva',
+          descripcion: 'Tratamiento para lesiones deportivas.',
+          especialidad: 'Fisioterapia',
+          duracion: 60,
+          precio: -1
+        }
+      });
+      const res = createResponse();
+
+      await createTherapy(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'Price must be greater than or equal to zero'
+      });
+      expect(prismaMock.terapia.create).not.toHaveBeenCalled();
+    });
+
     it('returns status 500 when creating a therapy fails', async () => {
       prismaMock.terapia.create.mockRejectedValue(new Error('DB error'));
       const req = createRequest({
@@ -233,6 +315,23 @@ describe('therapies.controller', () => {
 
     it('returns status 404 when the therapy to update does not exist', async () => {
       prismaMock.terapia.findUnique.mockResolvedValue(null);
+      const req = createRequest({
+        params: { id: '1' },
+        body: { nombre: 'Fisioterapia actualizada' }
+      });
+      const res = createResponse();
+
+      await updateTherapy(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Therapy not found' });
+    });
+
+    it('returns status 404 when Prisma reports a missing therapy during update', async () => {
+      prismaMock.terapia.findUnique.mockResolvedValue(therapyRecord);
+      prismaMock.terapia.update.mockRejectedValue(
+        Object.assign(new Error('Record not found'), { code: 'P2025' })
+      );
       const req = createRequest({
         params: { id: '1' },
         body: { nombre: 'Fisioterapia actualizada' }
