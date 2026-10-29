@@ -128,6 +128,19 @@ describe('therapies.controller', () => {
       expect(prismaMock.terapia.findMany).not.toHaveBeenCalled();
     });
 
+    it('returns status 400 when the specialty filter is empty', async () => {
+      const req = createRequest({ query: { specialty: '   ' } });
+      const res = createResponse();
+
+      await getTherapies(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'Specialty must be a non-empty string'
+      });
+      expect(prismaMock.terapia.findMany).not.toHaveBeenCalled();
+    });
+
     it('returns status 500 when retrieving therapies fails', async () => {
       prismaMock.terapia.findMany.mockRejectedValue(new Error('Database error'));
       const req = createRequest();
@@ -143,6 +156,21 @@ describe('therapies.controller', () => {
   });
 
   describe('getTherapyById', () => {
+    it('returns the requested therapy with mapped response fields', async () => {
+      prismaMock.terapia.findUnique.mockResolvedValue(therapyRecord);
+      const req = createRequest({ params: { id: '1' } });
+      const res = createResponse();
+
+      await getTherapyById(req, res);
+
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        id: 1,
+        nombre: 'Fisioterapia Deportiva',
+        precio: 45,
+        activa: true
+      }));
+    });
+
     it('returns status 400 when the therapy ID is invalid', async () => {
       const req = createRequest({ params: { id: 'invalid' } });
       const res = createResponse();
@@ -180,6 +208,32 @@ describe('therapies.controller', () => {
   });
 
   describe('createTherapy', () => {
+    it('returns status 400 when the request body is not an object', async () => {
+      const req = createRequest({ body: null });
+      const res = createResponse();
+
+      await createTherapy(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'Request body must be an object'
+      });
+      expect(prismaMock.terapia.create).not.toHaveBeenCalled();
+    });
+
+    it('returns status 400 when required therapy fields are missing', async () => {
+      const req = createRequest({ body: { nombre: 'Fisioterapia Deportiva' } });
+      const res = createResponse();
+
+      await createTherapy(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'Name, description, specialty, duration and price are required'
+      });
+      expect(prismaMock.terapia.create).not.toHaveBeenCalled();
+    });
+
     it('creates a therapy from Spanish fields and returns its mapped fields', async () => {
       prismaMock.terapia.create.mockResolvedValue(therapyRecord);
       const req = createRequest({
@@ -265,6 +319,28 @@ describe('therapies.controller', () => {
       expect(prismaMock.terapia.create).not.toHaveBeenCalled();
     });
 
+    it('returns status 400 when image is not a string or null', async () => {
+      const req = createRequest({
+        body: {
+          nombre: 'Fisioterapia Deportiva',
+          descripcion: 'Tratamiento para lesiones deportivas.',
+          especialidad: 'Fisioterapia',
+          duracion: 60,
+          precio: 45,
+          imagen: 123
+        }
+      });
+      const res = createResponse();
+
+      await createTherapy(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'Image must be a string or null'
+      });
+      expect(prismaMock.terapia.create).not.toHaveBeenCalled();
+    });
+
     it('returns status 500 when creating a therapy fails', async () => {
       prismaMock.terapia.create.mockRejectedValue(new Error('DB error'));
       const req = createRequest({
@@ -286,6 +362,20 @@ describe('therapies.controller', () => {
   });
 
   describe('updateTherapy', () => {
+    it('returns status 400 when the therapy ID is invalid', async () => {
+      const req = createRequest({
+        params: { id: 'invalid' },
+        body: { nombre: 'Fisioterapia actualizada' }
+      });
+      const res = createResponse();
+
+      await updateTherapy(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Invalid therapy ID' });
+      expect(prismaMock.terapia.findUnique).not.toHaveBeenCalled();
+    });
+
     it('updates a therapy and returns the mapped fields', async () => {
       prismaMock.terapia.findUnique.mockResolvedValue(therapyRecord);
       prismaMock.terapia.update.mockResolvedValue({
@@ -342,6 +432,19 @@ describe('therapies.controller', () => {
 
       expect(res.status).toHaveBeenCalledWith(404);
       expect(res.json).toHaveBeenCalledWith({ error: 'Therapy not found' });
+    });
+
+    it('returns status 400 when no valid update fields are provided', async () => {
+      const req = createRequest({ params: { id: '1' }, body: {} });
+      const res = createResponse();
+
+      await updateTherapy(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'At least one valid field is required'
+      });
+      expect(prismaMock.terapia.findUnique).not.toHaveBeenCalled();
     });
 
     it('returns status 500 when updating a therapy fails', async () => {
